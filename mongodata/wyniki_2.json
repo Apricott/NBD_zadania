@@ -1,0 +1,74 @@
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("dbbf7618-9c2b-487e-8e77-83e0f0f2d86f") }
+MongoDB server version: 5.0.6
+uncaught exception: Error: error: {
+	"ok" : 0,
+	"errmsg" : "unknown top level operator: $match. If you have a field name that starts with a '$' symbol, consider using $getField or $setField.",
+	"code" : 2,
+	"codeName" : "BadValue"
+} :
+_getErrorWithCode@src/mongo/shell/utils.js:25:13
+DBCommandCursor@src/mongo/shell/query.js:711:15
+DBQuery.prototype._exec@src/mongo/shell/query.js:113:28
+DBQuery.prototype.hasNext@src/mongo/shell/query.js:288:5
+DBCollection.prototype.findOne@src/mongo/shell/collection.js:260:10
+@tasks/zapytanie_2.js:2:5
+failed to load: tasks/zapytanie_2.js
+exiting with code -3
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("1394a079-1016-4954-bb9e-dafff31ea9ea") }
+MongoDB server version: 5.0.6
+{
+	"_id" : ObjectId("628e87fbcfd8e4a2c3b641f3"),
+	"sex" : "Female",
+	"first_name" : "Frances",
+	"last_name" : "Romero",
+	"job" : "Project Manager",
+	"email" : "fromeroc@ted.com",
+	"location" : {
+		"city" : "Yantang",
+		"address" : {
+			"streetname" : "Holy Cross",
+			"streetnumber" : "33801"
+		}
+	},
+	"description" : "non velit nec nisi vulputate nonummy maecenas tincidunt lacus at velit",
+	"height" : "179.89",
+	"weight" : "67.8",
+	"birth_date" : "1954-03-25T11:51:38Z",
+	"nationality" : "China",
+	"credit" : [
+		{
+			"type" : "instapayment",
+			"number" : "3581609550731672",
+			"currency" : "CZK",
+			"balance" : "5658.66"
+		},
+		{
+			"type" : "visa-electron",
+			"number" : "6379796541338409",
+			"currency" : "PLN",
+			"balance" : "4280.15"
+		},
+		{
+			"type" : "diners-club-international",
+			"number" : "3539516040777020",
+			"currency" : "LKR",
+			"balance" : "5402.31"
+		},
+		{
+			"type" : "jcb",
+			"number" : "5602223447727826",
+			"currency" : "CNY",
+			"balance" : "4653.86"
+		},
+		{
+			"type" : "jcb",
+			"number" : "3529854509994014",
+			"currency" : "ARS",
+			"balance" : "4944.8"
+		}
+	]
+}
