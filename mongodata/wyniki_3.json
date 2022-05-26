@@ -1,0 +1,3066 @@
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("3ee11adb-9e3d-41ac-9c49-865b023aae45") }
+MongoDB server version: 5.0.6
+[ ]
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("6f78c6e6-ab81-4f26-8eb4-2d926b2fa3d8") }
+MongoDB server version: 5.0.6
+{
+	"_mongo" : connection to 127.0.0.1:27017,
+	"_db" : nbd,
+	"_collection" : nbd.people,
+	"_ns" : "nbd.people",
+	"_query" : {
+		"nationality" : "German"
+	},
+	"_fields" : null,
+	"_limit" : 0,
+	"_skip" : 0,
+	"_batchSize" : 0,
+	"_options" : 0,
+	"_cursor" : null,
+	"_numReturned" : 0,
+	"_special" : false,
+	"help" : function() {
+    print("find(<predicate>, <projection>) modifiers");
+    print("\t.sort({...})");
+    print("\t.limit(<n>)");
+    print("\t.skip(<n>)");
+    print("\t.batchSize(<n>) - sets the number of docs to return per getMore");
+    print("\t.collation({...})");
+    print("\t.hint({...})");
+    print("\t.readConcern(<level>)");
+    print("\t.readPref(<mode>, <tagset>)");
+    print(
+        "\t.count(<applySkipLimit>) - total # of objects matching query. by default ignores skip,limit");
+    print("\t.size() - total # of objects cursor would return, honors skip,limit");
+    print(
+        "\t.explain(<verbosity>) - accepted verbosities are {'queryPlanner', 'executionStats', 'allPlansExecution'}");
+    print("\t.min({...})");
+    print("\t.max({...})");
+    print("\t.maxTimeMS(<n>)");
+    print("\t.comment(<comment>)");
+    print("\t.tailable(<isAwaitData>)");
+    print("\t.noCursorTimeout()");
+    print("\t.allowPartialResults()");
+    print("\t.returnKey()");
+    print("\t.showRecordId() - adds a $recordId field to each returned object");
+    print("\t.allowDiskUse() - allow using disk in completing the query");
+
+    print("\nCursor methods");
+    print("\t.toArray() - iterates through docs and returns an array of the results");
+    print("\t.forEach(<func>)");
+    print("\t.map(<func>)");
+    print("\t.hasNext()");
+    print("\t.next()");
+    print("\t.close()");
+    print(
+        "\t.objsLeftInBatch() - returns count of docs left in current batch (when exhausted, a new getMore will be issued)");
+    print("\t.itcount() - iterates through documents and counts them");
+    print("\t.getClusterTime() - returns the read timestamp for snapshot reads");
+    print("\t.pretty() - pretty print each document, possibly over multiple lines");
+},
+	"clone" : function() {
+    var q = new DBQuery(this._mongo,
+                        this._db,
+                        this._collection,
+                        this._ns,
+                        this._query,
+                        this._fields,
+                        this._limit,
+                        this._skip,
+                        this._batchSize,
+                        this._options);
+    q._special = this._special;
+    return q;
+},
+	"_ensureSpecial" : function() {
+    if (this._special)
+        return;
+
+    var n = {query: this._query};
+    this._query = n;
+    this._special = true;
+},
+	"_checkModify" : function() {
+    if (this._cursor)
+        throw Error("query already executed");
+},
+	"_canUseFindCommand" : function() {
+    // Since runCommand() is implemented by running a findOne() against the $cmd collection, we have
+    // to make sure that we don't try to run a find command against the $cmd collection.
+    //
+    // We also forbid queries with the exhaust option from running as find commands, because the
+    // find command does not support exhaust.
+    return (this._collection.getName().indexOf("$cmd") !== 0) &&
+        (this._options & DBQuery.Option.exhaust) === 0;
+},
+	"_exec" : function() {
+    if (!this._cursor) {
+        assert.eq(0, this._numReturned);
+        this._cursorSeen = 0;
+
+        if (this._mongo.useReadCommands() && this._canUseFindCommand()) {
+            var canAttachReadPref = true;
+            var findCmd = this._convertToCommand(canAttachReadPref);
+            var cmdRes = this._db.runReadCommand(findCmd, null, this._options);
+            this._cursor = new DBCommandCursor(this._db, cmdRes, this._batchSize);
+        } else {
+            // The exhaust cursor option is disallowed under a session because it doesn't work as
+            // expected, but all requests from the shell use implicit sessions, so to allow users
+            // to continue using exhaust cursors through the shell, they are only disallowed with
+            // explicit sessions.
+            if (this._db.getSession()._isExplicit) {
+                throw new Error("Cannot run a legacy query on a session.");
+            }
+
+            if (this._special && this._query.readConcern) {
+                throw new Error("readConcern requires use of read commands");
+            }
+
+            if (this._special && this._query.collation) {
+                throw new Error("collation requires use of read commands");
+            }
+
+            if (this._special && this._query._allowDiskUse) {
+                throw new Error("allowDiskUse option requires use of read commands");
+            }
+
+            this._cursor = this._mongo.find(this._ns,
+                                            this._query,
+                                            this._fields,
+                                            this._limit,
+                                            this._skip,
+                                            this._batchSize,
+                                            this._options);
+        }
+    }
+    return this._cursor;
+},
+	"_convertToCommand" : function(canAttachReadPref) {
+    var cmd = {};
+
+    cmd["find"] = this._collection.getName();
+
+    if (this._special) {
+        if (this._query.query) {
+            cmd["filter"] = this._query.query;
+        }
+    } else if (this._query) {
+        cmd["filter"] = this._query;
+    }
+
+    if (this._skip) {
+        cmd["skip"] = this._skip;
+    }
+
+    if (this._batchSize) {
+        if (this._batchSize < 0) {
+            cmd["batchSize"] = -this._batchSize;
+            cmd["singleBatch"] = true;
+        } else {
+            cmd["batchSize"] = this._batchSize;
+        }
+    }
+
+    if (this._limit) {
+        if (this._limit < 0) {
+            cmd["limit"] = -this._limit;
+            cmd["singleBatch"] = true;
+        } else {
+            cmd["limit"] = this._limit;
+            cmd["singleBatch"] = false;
+        }
+    }
+
+    if ("orderby" in this._query) {
+        cmd["sort"] = this._query.orderby;
+    }
+
+    if (this._fields) {
+        cmd["projection"] = this._fields;
+    }
+
+    if ("$hint" in this._query) {
+        cmd["hint"] = this._query.$hint;
+    }
+
+    if ("$comment" in this._query) {
+        cmd["comment"] = this._query.$comment;
+    }
+
+    if ("$maxTimeMS" in this._query) {
+        cmd["maxTimeMS"] = this._query.$maxTimeMS;
+    }
+
+    if ("$max" in this._query) {
+        cmd["max"] = this._query.$max;
+    }
+
+    if ("$min" in this._query) {
+        cmd["min"] = this._query.$min;
+    }
+
+    if ("$returnKey" in this._query) {
+        cmd["returnKey"] = this._query.$returnKey;
+    }
+
+    if ("$showDiskLoc" in this._query) {
+        cmd["showRecordId"] = this._query.$showDiskLoc;
+    }
+
+    if ("readConcern" in this._query) {
+        cmd["readConcern"] = this._query.readConcern;
+    }
+
+    if ("collation" in this._query) {
+        cmd["collation"] = this._query.collation;
+    }
+
+    if ("allowDiskUse" in this._query) {
+        cmd["allowDiskUse"] = this._query.allowDiskUse;
+    }
+
+    if ((this._options & DBQuery.Option.tailable) != 0) {
+        cmd["tailable"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.noTimeout) != 0) {
+        cmd["noCursorTimeout"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.awaitData) != 0) {
+        cmd["awaitData"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.partial) != 0) {
+        cmd["allowPartialResults"] = true;
+    }
+
+    if (canAttachReadPref) {
+        // If there is a readPreference, use the wrapped command form.
+        if ("$readPreference" in this._query) {
+            var prefObj = this._query.$readPreference;
+            cmd = this._db._attachReadPreferenceToCommand(cmd, prefObj);
+        }
+    }
+
+    return cmd;
+},
+	"limit" : function(limit) {
+    this._checkModify();
+    this._limit = limit;
+    return this;
+},
+	"batchSize" : function(batchSize) {
+    this._checkModify();
+    this._batchSize = batchSize;
+    return this;
+},
+	"addOption" : function(option) {
+    this._options |= option;
+    return this;
+},
+	"skip" : function(skip) {
+    this._checkModify();
+    this._skip = skip;
+    return this;
+},
+	"hasNext" : function() {
+    this._exec();
+
+    if (this._limit > 0 && this._cursorSeen >= this._limit) {
+        this._cursor.close();
+        return false;
+    }
+    var o = this._cursor.hasNext();
+    return o;
+},
+	"next" : function() {
+    this._exec();
+
+    var o = this._cursor.hasNext();
+    if (o)
+        this._cursorSeen++;
+    else
+        throw Error("error hasNext: " + o);
+
+    var ret = this._cursor.next();
+    if (ret.$err) {
+        throw _getErrorWithCode(ret, "error: " + tojson(ret));
+    }
+
+    this._numReturned++;
+    return ret;
+},
+	"objsLeftInBatch" : function() {
+    this._exec();
+
+    var ret = this._cursor.objsLeftInBatch();
+    if (ret.$err)
+        throw _getErrorWithCode(ret, "error: " + tojson(ret));
+
+    return ret;
+},
+	"readOnly" : function() {
+    this._exec();
+    this._cursor.readOnly();
+    return this;
+},
+	"getId" : function() {
+    this._exec();
+    return this._cursor.getId();
+},
+	"toArray" : function() {
+    if (this._arr)
+        return this._arr;
+
+    var a = [];
+    while (this.hasNext())
+        a.push(this.next());
+    this._arr = a;
+    return a;
+},
+	"_convertToCountCmd" : function(applySkipLimit) {
+    var cmd = {count: this._collection.getName()};
+
+    if (this._query) {
+        if (this._special) {
+            cmd.query = this._query.query;
+            if (this._query.$maxTimeMS) {
+                cmd.maxTimeMS = this._query.$maxTimeMS;
+            }
+            if (this._query.$hint) {
+                cmd.hint = this._query.$hint;
+            }
+            if (this._query.readConcern) {
+                cmd.readConcern = this._query.readConcern;
+            }
+            if (this._query.collation) {
+                cmd.collation = this._query.collation;
+            }
+        } else {
+            cmd.query = this._query;
+        }
+    }
+
+    if (applySkipLimit) {
+        if (this._limit)
+            cmd.limit = this._limit;
+        if (this._skip)
+            cmd.skip = this._skip;
+    }
+
+    return cmd;
+},
+	"count" : function(applySkipLimit) {
+    var cmd = this._convertToCountCmd(applySkipLimit);
+
+    var res = this._db.runReadCommand(cmd);
+    if (res && res.n != null)
+        return res.n;
+    throw _getErrorWithCode(res, "count failed: " + tojson(res));
+},
+	"size" : function() {
+    return this.count(true);
+},
+	"countReturn" : function() {
+    var c = this.count();
+
+    if (this._skip)
+        c = c - this._skip;
+
+    if (this._limit > 0 && this._limit < c)
+        return this._limit;
+
+    return c;
+},
+	"itcount" : function() {
+    var num = 0;
+
+    // Track how many bytes we've used this cursor to iterate iterated.  This function can be called
+    // with some very large cursors.  SpiderMonkey appears happy to allow these objects to
+    // accumulate, so regular gc() avoids an overly large memory footprint.
+    //
+    // TODO: migrate this function into c++
+    var bytesSinceGC = 0;
+
+    while (this.hasNext()) {
+        num++;
+        var nextDoc = this.next();
+        bytesSinceGC += Object.bsonsize(nextDoc);
+
+        // Garbage collect every 10 MB.
+        if (bytesSinceGC > (10 * 1024 * 1024)) {
+            bytesSinceGC = 0;
+            gc();
+        }
+    }
+    return num;
+},
+	"length" : function() {
+    return this.toArray().length;
+},
+	"_addSpecial" : function(name, value) {
+    this._ensureSpecial();
+    this._query[name] = value;
+    return this;
+},
+	"sort" : function(sortBy) {
+    return this._addSpecial("orderby", sortBy);
+},
+	"hint" : function(hint) {
+    return this._addSpecial("$hint", hint);
+},
+	"min" : function(min) {
+    return this._addSpecial("$min", min);
+},
+	"max" : function(max) {
+    return this._addSpecial("$max", max);
+},
+	"showDiskLoc" : function() {
+    return this.showRecordId();
+},
+	"showRecordId" : function() {
+    return this._addSpecial("$showDiskLoc", true);
+},
+	"maxTimeMS" : function(maxTimeMS) {
+    return this._addSpecial("$maxTimeMS", maxTimeMS);
+},
+	"readConcern" : function(level, atClusterTime = undefined) {
+    var readConcernObj =
+        atClusterTime ? {level: level, atClusterTime: atClusterTime} : {level: level};
+
+    return this._addSpecial("readConcern", readConcernObj);
+},
+	"collation" : function(collationSpec) {
+    return this._addSpecial("collation", collationSpec);
+},
+	"allowDiskUse" : function() {
+    return this._addSpecial("allowDiskUse", true);
+},
+	"readPref" : function(mode, tagSet, hedgeOptions) {
+    var readPrefObj = {mode: mode};
+
+    if (tagSet) {
+        readPrefObj.tags = tagSet;
+    }
+
+    if (hedgeOptions) {
+        readPrefObj.hedge = hedgeOptions;
+    }
+
+    return this._addSpecial("$readPreference", readPrefObj);
+},
+	"forEach" : function(func) {
+    while (this.hasNext())
+        func(this.next());
+},
+	"map" : function(func) {
+    var a = [];
+    while (this.hasNext())
+        a.push(func(this.next()));
+    return a;
+},
+	"arrayAccess" : function(idx) {
+    return this.toArray()[idx];
+},
+	"comment" : function(comment) {
+    return this._addSpecial("$comment", comment);
+},
+	"explain" : function(verbose) {
+    var explainQuery = new DBExplainQuery(this, verbose);
+    return explainQuery.finish();
+},
+	"returnKey" : function() {
+    return this._addSpecial("$returnKey", true);
+},
+	"pretty" : function() {
+    this._prettyShell = true;
+    return this;
+},
+	"shellPrint" : function() {
+    try {
+        var start = new Date().getTime();
+        var n = 0;
+        while (this.hasNext() && n < DBQuery.shellBatchSize) {
+            var s = this._prettyShell ? tojson(this.next()) : tojson(this.next(), "", true);
+            print(s);
+            n++;
+        }
+        if (typeof _verboseShell !== 'undefined' && _verboseShell) {
+            var time = new Date().getTime() - start;
+            print("Fetched " + n + " record(s) in " + time + "ms");
+        }
+        if (this.hasNext()) {
+            print("Type \"it\" for more");
+            ___it___ = this;
+        } else {
+            ___it___ = null;
+        }
+    } catch (e) {
+        print(e);
+    }
+},
+	"toString" : function() {
+    return "DBQuery: " + this._ns + " -> " + tojson(this._query);
+},
+	"allowPartialResults" : function() {
+    this._checkModify();
+    this.addOption(DBQuery.Option.partial);
+    return this;
+},
+	"noCursorTimeout" : function() {
+    this._checkModify();
+    this.addOption(DBQuery.Option.noTimeout);
+    return this;
+},
+	"projection" : function(document) {
+    this._checkModify();
+    this._fields = document;
+    return this;
+},
+	"tailable" : function(awaitData) {
+    this._checkModify();
+    this.addOption(DBQuery.Option.tailable);
+
+    // Set await data if either specifically set or not specified
+    if (awaitData || awaitData == null) {
+        this.addOption(DBQuery.Option.awaitData);
+    }
+
+    return this;
+},
+	"modifiers" : function(document) {
+    this._checkModify();
+
+    for (var name in document) {
+        if (name[0] != '$') {
+            throw new Error('All modifiers must start with a $ such as $returnKey');
+        }
+    }
+
+    for (var name in document) {
+        this._addSpecial(name, document[name]);
+    }
+
+    return this;
+},
+	"close" : function() {
+    if (this._cursor) {
+        this._cursor.close();
+    }
+},
+	"isClosed" : function() {
+    this._exec();
+    return this._cursor.isClosed();
+},
+	"isExhausted" : function() {
+    this._exec();
+    return this._cursor.isClosed() && this._cursor.objsLeftInBatch() === 0;
+},
+	"getClusterTime" : function() {
+    // Return the read timestamp for snapshot reads, or undefined for other readConcern levels.
+    this._exec();
+    return this._cursor.getClusterTime();
+}
+}
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("554b7936-22ca-4881-ab21-911c9fffcca1") }
+MongoDB server version: 5.0.6
+{
+	"_mongo" : connection to 127.0.0.1:27017,
+	"_db" : nbd,
+	"_collection" : nbd.people,
+	"_ns" : "nbd.people",
+	"_query" : {
+		"sex" : "Male",
+		"nationality" : "German"
+	},
+	"_fields" : null,
+	"_limit" : 0,
+	"_skip" : 0,
+	"_batchSize" : 0,
+	"_options" : 0,
+	"_cursor" : null,
+	"_numReturned" : 0,
+	"_special" : false,
+	"help" : function() {
+    print("find(<predicate>, <projection>) modifiers");
+    print("\t.sort({...})");
+    print("\t.limit(<n>)");
+    print("\t.skip(<n>)");
+    print("\t.batchSize(<n>) - sets the number of docs to return per getMore");
+    print("\t.collation({...})");
+    print("\t.hint({...})");
+    print("\t.readConcern(<level>)");
+    print("\t.readPref(<mode>, <tagset>)");
+    print(
+        "\t.count(<applySkipLimit>) - total # of objects matching query. by default ignores skip,limit");
+    print("\t.size() - total # of objects cursor would return, honors skip,limit");
+    print(
+        "\t.explain(<verbosity>) - accepted verbosities are {'queryPlanner', 'executionStats', 'allPlansExecution'}");
+    print("\t.min({...})");
+    print("\t.max({...})");
+    print("\t.maxTimeMS(<n>)");
+    print("\t.comment(<comment>)");
+    print("\t.tailable(<isAwaitData>)");
+    print("\t.noCursorTimeout()");
+    print("\t.allowPartialResults()");
+    print("\t.returnKey()");
+    print("\t.showRecordId() - adds a $recordId field to each returned object");
+    print("\t.allowDiskUse() - allow using disk in completing the query");
+
+    print("\nCursor methods");
+    print("\t.toArray() - iterates through docs and returns an array of the results");
+    print("\t.forEach(<func>)");
+    print("\t.map(<func>)");
+    print("\t.hasNext()");
+    print("\t.next()");
+    print("\t.close()");
+    print(
+        "\t.objsLeftInBatch() - returns count of docs left in current batch (when exhausted, a new getMore will be issued)");
+    print("\t.itcount() - iterates through documents and counts them");
+    print("\t.getClusterTime() - returns the read timestamp for snapshot reads");
+    print("\t.pretty() - pretty print each document, possibly over multiple lines");
+},
+	"clone" : function() {
+    var q = new DBQuery(this._mongo,
+                        this._db,
+                        this._collection,
+                        this._ns,
+                        this._query,
+                        this._fields,
+                        this._limit,
+                        this._skip,
+                        this._batchSize,
+                        this._options);
+    q._special = this._special;
+    return q;
+},
+	"_ensureSpecial" : function() {
+    if (this._special)
+        return;
+
+    var n = {query: this._query};
+    this._query = n;
+    this._special = true;
+},
+	"_checkModify" : function() {
+    if (this._cursor)
+        throw Error("query already executed");
+},
+	"_canUseFindCommand" : function() {
+    // Since runCommand() is implemented by running a findOne() against the $cmd collection, we have
+    // to make sure that we don't try to run a find command against the $cmd collection.
+    //
+    // We also forbid queries with the exhaust option from running as find commands, because the
+    // find command does not support exhaust.
+    return (this._collection.getName().indexOf("$cmd") !== 0) &&
+        (this._options & DBQuery.Option.exhaust) === 0;
+},
+	"_exec" : function() {
+    if (!this._cursor) {
+        assert.eq(0, this._numReturned);
+        this._cursorSeen = 0;
+
+        if (this._mongo.useReadCommands() && this._canUseFindCommand()) {
+            var canAttachReadPref = true;
+            var findCmd = this._convertToCommand(canAttachReadPref);
+            var cmdRes = this._db.runReadCommand(findCmd, null, this._options);
+            this._cursor = new DBCommandCursor(this._db, cmdRes, this._batchSize);
+        } else {
+            // The exhaust cursor option is disallowed under a session because it doesn't work as
+            // expected, but all requests from the shell use implicit sessions, so to allow users
+            // to continue using exhaust cursors through the shell, they are only disallowed with
+            // explicit sessions.
+            if (this._db.getSession()._isExplicit) {
+                throw new Error("Cannot run a legacy query on a session.");
+            }
+
+            if (this._special && this._query.readConcern) {
+                throw new Error("readConcern requires use of read commands");
+            }
+
+            if (this._special && this._query.collation) {
+                throw new Error("collation requires use of read commands");
+            }
+
+            if (this._special && this._query._allowDiskUse) {
+                throw new Error("allowDiskUse option requires use of read commands");
+            }
+
+            this._cursor = this._mongo.find(this._ns,
+                                            this._query,
+                                            this._fields,
+                                            this._limit,
+                                            this._skip,
+                                            this._batchSize,
+                                            this._options);
+        }
+    }
+    return this._cursor;
+},
+	"_convertToCommand" : function(canAttachReadPref) {
+    var cmd = {};
+
+    cmd["find"] = this._collection.getName();
+
+    if (this._special) {
+        if (this._query.query) {
+            cmd["filter"] = this._query.query;
+        }
+    } else if (this._query) {
+        cmd["filter"] = this._query;
+    }
+
+    if (this._skip) {
+        cmd["skip"] = this._skip;
+    }
+
+    if (this._batchSize) {
+        if (this._batchSize < 0) {
+            cmd["batchSize"] = -this._batchSize;
+            cmd["singleBatch"] = true;
+        } else {
+            cmd["batchSize"] = this._batchSize;
+        }
+    }
+
+    if (this._limit) {
+        if (this._limit < 0) {
+            cmd["limit"] = -this._limit;
+            cmd["singleBatch"] = true;
+        } else {
+            cmd["limit"] = this._limit;
+            cmd["singleBatch"] = false;
+        }
+    }
+
+    if ("orderby" in this._query) {
+        cmd["sort"] = this._query.orderby;
+    }
+
+    if (this._fields) {
+        cmd["projection"] = this._fields;
+    }
+
+    if ("$hint" in this._query) {
+        cmd["hint"] = this._query.$hint;
+    }
+
+    if ("$comment" in this._query) {
+        cmd["comment"] = this._query.$comment;
+    }
+
+    if ("$maxTimeMS" in this._query) {
+        cmd["maxTimeMS"] = this._query.$maxTimeMS;
+    }
+
+    if ("$max" in this._query) {
+        cmd["max"] = this._query.$max;
+    }
+
+    if ("$min" in this._query) {
+        cmd["min"] = this._query.$min;
+    }
+
+    if ("$returnKey" in this._query) {
+        cmd["returnKey"] = this._query.$returnKey;
+    }
+
+    if ("$showDiskLoc" in this._query) {
+        cmd["showRecordId"] = this._query.$showDiskLoc;
+    }
+
+    if ("readConcern" in this._query) {
+        cmd["readConcern"] = this._query.readConcern;
+    }
+
+    if ("collation" in this._query) {
+        cmd["collation"] = this._query.collation;
+    }
+
+    if ("allowDiskUse" in this._query) {
+        cmd["allowDiskUse"] = this._query.allowDiskUse;
+    }
+
+    if ((this._options & DBQuery.Option.tailable) != 0) {
+        cmd["tailable"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.noTimeout) != 0) {
+        cmd["noCursorTimeout"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.awaitData) != 0) {
+        cmd["awaitData"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.partial) != 0) {
+        cmd["allowPartialResults"] = true;
+    }
+
+    if (canAttachReadPref) {
+        // If there is a readPreference, use the wrapped command form.
+        if ("$readPreference" in this._query) {
+            var prefObj = this._query.$readPreference;
+            cmd = this._db._attachReadPreferenceToCommand(cmd, prefObj);
+        }
+    }
+
+    return cmd;
+},
+	"limit" : function(limit) {
+    this._checkModify();
+    this._limit = limit;
+    return this;
+},
+	"batchSize" : function(batchSize) {
+    this._checkModify();
+    this._batchSize = batchSize;
+    return this;
+},
+	"addOption" : function(option) {
+    this._options |= option;
+    return this;
+},
+	"skip" : function(skip) {
+    this._checkModify();
+    this._skip = skip;
+    return this;
+},
+	"hasNext" : function() {
+    this._exec();
+
+    if (this._limit > 0 && this._cursorSeen >= this._limit) {
+        this._cursor.close();
+        return false;
+    }
+    var o = this._cursor.hasNext();
+    return o;
+},
+	"next" : function() {
+    this._exec();
+
+    var o = this._cursor.hasNext();
+    if (o)
+        this._cursorSeen++;
+    else
+        throw Error("error hasNext: " + o);
+
+    var ret = this._cursor.next();
+    if (ret.$err) {
+        throw _getErrorWithCode(ret, "error: " + tojson(ret));
+    }
+
+    this._numReturned++;
+    return ret;
+},
+	"objsLeftInBatch" : function() {
+    this._exec();
+
+    var ret = this._cursor.objsLeftInBatch();
+    if (ret.$err)
+        throw _getErrorWithCode(ret, "error: " + tojson(ret));
+
+    return ret;
+},
+	"readOnly" : function() {
+    this._exec();
+    this._cursor.readOnly();
+    return this;
+},
+	"getId" : function() {
+    this._exec();
+    return this._cursor.getId();
+},
+	"toArray" : function() {
+    if (this._arr)
+        return this._arr;
+
+    var a = [];
+    while (this.hasNext())
+        a.push(this.next());
+    this._arr = a;
+    return a;
+},
+	"_convertToCountCmd" : function(applySkipLimit) {
+    var cmd = {count: this._collection.getName()};
+
+    if (this._query) {
+        if (this._special) {
+            cmd.query = this._query.query;
+            if (this._query.$maxTimeMS) {
+                cmd.maxTimeMS = this._query.$maxTimeMS;
+            }
+            if (this._query.$hint) {
+                cmd.hint = this._query.$hint;
+            }
+            if (this._query.readConcern) {
+                cmd.readConcern = this._query.readConcern;
+            }
+            if (this._query.collation) {
+                cmd.collation = this._query.collation;
+            }
+        } else {
+            cmd.query = this._query;
+        }
+    }
+
+    if (applySkipLimit) {
+        if (this._limit)
+            cmd.limit = this._limit;
+        if (this._skip)
+            cmd.skip = this._skip;
+    }
+
+    return cmd;
+},
+	"count" : function(applySkipLimit) {
+    var cmd = this._convertToCountCmd(applySkipLimit);
+
+    var res = this._db.runReadCommand(cmd);
+    if (res && res.n != null)
+        return res.n;
+    throw _getErrorWithCode(res, "count failed: " + tojson(res));
+},
+	"size" : function() {
+    return this.count(true);
+},
+	"countReturn" : function() {
+    var c = this.count();
+
+    if (this._skip)
+        c = c - this._skip;
+
+    if (this._limit > 0 && this._limit < c)
+        return this._limit;
+
+    return c;
+},
+	"itcount" : function() {
+    var num = 0;
+
+    // Track how many bytes we've used this cursor to iterate iterated.  This function can be called
+    // with some very large cursors.  SpiderMonkey appears happy to allow these objects to
+    // accumulate, so regular gc() avoids an overly large memory footprint.
+    //
+    // TODO: migrate this function into c++
+    var bytesSinceGC = 0;
+
+    while (this.hasNext()) {
+        num++;
+        var nextDoc = this.next();
+        bytesSinceGC += Object.bsonsize(nextDoc);
+
+        // Garbage collect every 10 MB.
+        if (bytesSinceGC > (10 * 1024 * 1024)) {
+            bytesSinceGC = 0;
+            gc();
+        }
+    }
+    return num;
+},
+	"length" : function() {
+    return this.toArray().length;
+},
+	"_addSpecial" : function(name, value) {
+    this._ensureSpecial();
+    this._query[name] = value;
+    return this;
+},
+	"sort" : function(sortBy) {
+    return this._addSpecial("orderby", sortBy);
+},
+	"hint" : function(hint) {
+    return this._addSpecial("$hint", hint);
+},
+	"min" : function(min) {
+    return this._addSpecial("$min", min);
+},
+	"max" : function(max) {
+    return this._addSpecial("$max", max);
+},
+	"showDiskLoc" : function() {
+    return this.showRecordId();
+},
+	"showRecordId" : function() {
+    return this._addSpecial("$showDiskLoc", true);
+},
+	"maxTimeMS" : function(maxTimeMS) {
+    return this._addSpecial("$maxTimeMS", maxTimeMS);
+},
+	"readConcern" : function(level, atClusterTime = undefined) {
+    var readConcernObj =
+        atClusterTime ? {level: level, atClusterTime: atClusterTime} : {level: level};
+
+    return this._addSpecial("readConcern", readConcernObj);
+},
+	"collation" : function(collationSpec) {
+    return this._addSpecial("collation", collationSpec);
+},
+	"allowDiskUse" : function() {
+    return this._addSpecial("allowDiskUse", true);
+},
+	"readPref" : function(mode, tagSet, hedgeOptions) {
+    var readPrefObj = {mode: mode};
+
+    if (tagSet) {
+        readPrefObj.tags = tagSet;
+    }
+
+    if (hedgeOptions) {
+        readPrefObj.hedge = hedgeOptions;
+    }
+
+    return this._addSpecial("$readPreference", readPrefObj);
+},
+	"forEach" : function(func) {
+    while (this.hasNext())
+        func(this.next());
+},
+	"map" : function(func) {
+    var a = [];
+    while (this.hasNext())
+        a.push(func(this.next()));
+    return a;
+},
+	"arrayAccess" : function(idx) {
+    return this.toArray()[idx];
+},
+	"comment" : function(comment) {
+    return this._addSpecial("$comment", comment);
+},
+	"explain" : function(verbose) {
+    var explainQuery = new DBExplainQuery(this, verbose);
+    return explainQuery.finish();
+},
+	"returnKey" : function() {
+    return this._addSpecial("$returnKey", true);
+},
+	"pretty" : function() {
+    this._prettyShell = true;
+    return this;
+},
+	"shellPrint" : function() {
+    try {
+        var start = new Date().getTime();
+        var n = 0;
+        while (this.hasNext() && n < DBQuery.shellBatchSize) {
+            var s = this._prettyShell ? tojson(this.next()) : tojson(this.next(), "", true);
+            print(s);
+            n++;
+        }
+        if (typeof _verboseShell !== 'undefined' && _verboseShell) {
+            var time = new Date().getTime() - start;
+            print("Fetched " + n + " record(s) in " + time + "ms");
+        }
+        if (this.hasNext()) {
+            print("Type \"it\" for more");
+            ___it___ = this;
+        } else {
+            ___it___ = null;
+        }
+    } catch (e) {
+        print(e);
+    }
+},
+	"toString" : function() {
+    return "DBQuery: " + this._ns + " -> " + tojson(this._query);
+},
+	"allowPartialResults" : function() {
+    this._checkModify();
+    this.addOption(DBQuery.Option.partial);
+    return this;
+},
+	"noCursorTimeout" : function() {
+    this._checkModify();
+    this.addOption(DBQuery.Option.noTimeout);
+    return this;
+},
+	"projection" : function(document) {
+    this._checkModify();
+    this._fields = document;
+    return this;
+},
+	"tailable" : function(awaitData) {
+    this._checkModify();
+    this.addOption(DBQuery.Option.tailable);
+
+    // Set await data if either specifically set or not specified
+    if (awaitData || awaitData == null) {
+        this.addOption(DBQuery.Option.awaitData);
+    }
+
+    return this;
+},
+	"modifiers" : function(document) {
+    this._checkModify();
+
+    for (var name in document) {
+        if (name[0] != '$') {
+            throw new Error('All modifiers must start with a $ such as $returnKey');
+        }
+    }
+
+    for (var name in document) {
+        this._addSpecial(name, document[name]);
+    }
+
+    return this;
+},
+	"close" : function() {
+    if (this._cursor) {
+        this._cursor.close();
+    }
+},
+	"isClosed" : function() {
+    this._exec();
+    return this._cursor.isClosed();
+},
+	"isExhausted" : function() {
+    this._exec();
+    return this._cursor.isClosed() && this._cursor.objsLeftInBatch() === 0;
+},
+	"getClusterTime" : function() {
+    // Return the read timestamp for snapshot reads, or undefined for other readConcern levels.
+    this._exec();
+    return this._cursor.getClusterTime();
+}
+}
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("22388cd7-9f2f-44e4-96e8-8a7558347f56") }
+MongoDB server version: 5.0.6
+uncaught exception: TypeError: (intermediate value).toArray is not a function :
+@tasks/zapytanie_3.js:3:9
+failed to load: tasks/zapytanie_3.js
+exiting with code -3
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("99aa7ac0-0c6c-442a-89f7-8c229ac78e08") }
+MongoDB server version: 5.0.6
+[ ]
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("1fe6a6ae-0cca-45fe-8467-e99daca22808") }
+MongoDB server version: 5.0.6
+uncaught exception: TypeError: db.people.find(...).fetch is not a function :
+@tasks/zapytanie_3.js:2:5
+failed to load: tasks/zapytanie_3.js
+exiting with code -3
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("518c0cac-9607-472f-b258-29bfdf9484ed") }
+MongoDB server version: 5.0.6
+{
+	"_mongo" : connection to 127.0.0.1:27017,
+	"_db" : nbd,
+	"_collection" : nbd.people,
+	"_ns" : "nbd.people",
+	"_query" : {
+		"sex" : "Male",
+		"nationality" : "German"
+	},
+	"_fields" : null,
+	"_limit" : 0,
+	"_skip" : 0,
+	"_batchSize" : 0,
+	"_options" : 0,
+	"_cursor" : null,
+	"_numReturned" : 0,
+	"_special" : false,
+	"help" : function() {
+    print("find(<predicate>, <projection>) modifiers");
+    print("\t.sort({...})");
+    print("\t.limit(<n>)");
+    print("\t.skip(<n>)");
+    print("\t.batchSize(<n>) - sets the number of docs to return per getMore");
+    print("\t.collation({...})");
+    print("\t.hint({...})");
+    print("\t.readConcern(<level>)");
+    print("\t.readPref(<mode>, <tagset>)");
+    print(
+        "\t.count(<applySkipLimit>) - total # of objects matching query. by default ignores skip,limit");
+    print("\t.size() - total # of objects cursor would return, honors skip,limit");
+    print(
+        "\t.explain(<verbosity>) - accepted verbosities are {'queryPlanner', 'executionStats', 'allPlansExecution'}");
+    print("\t.min({...})");
+    print("\t.max({...})");
+    print("\t.maxTimeMS(<n>)");
+    print("\t.comment(<comment>)");
+    print("\t.tailable(<isAwaitData>)");
+    print("\t.noCursorTimeout()");
+    print("\t.allowPartialResults()");
+    print("\t.returnKey()");
+    print("\t.showRecordId() - adds a $recordId field to each returned object");
+    print("\t.allowDiskUse() - allow using disk in completing the query");
+
+    print("\nCursor methods");
+    print("\t.toArray() - iterates through docs and returns an array of the results");
+    print("\t.forEach(<func>)");
+    print("\t.map(<func>)");
+    print("\t.hasNext()");
+    print("\t.next()");
+    print("\t.close()");
+    print(
+        "\t.objsLeftInBatch() - returns count of docs left in current batch (when exhausted, a new getMore will be issued)");
+    print("\t.itcount() - iterates through documents and counts them");
+    print("\t.getClusterTime() - returns the read timestamp for snapshot reads");
+    print("\t.pretty() - pretty print each document, possibly over multiple lines");
+},
+	"clone" : function() {
+    var q = new DBQuery(this._mongo,
+                        this._db,
+                        this._collection,
+                        this._ns,
+                        this._query,
+                        this._fields,
+                        this._limit,
+                        this._skip,
+                        this._batchSize,
+                        this._options);
+    q._special = this._special;
+    return q;
+},
+	"_ensureSpecial" : function() {
+    if (this._special)
+        return;
+
+    var n = {query: this._query};
+    this._query = n;
+    this._special = true;
+},
+	"_checkModify" : function() {
+    if (this._cursor)
+        throw Error("query already executed");
+},
+	"_canUseFindCommand" : function() {
+    // Since runCommand() is implemented by running a findOne() against the $cmd collection, we have
+    // to make sure that we don't try to run a find command against the $cmd collection.
+    //
+    // We also forbid queries with the exhaust option from running as find commands, because the
+    // find command does not support exhaust.
+    return (this._collection.getName().indexOf("$cmd") !== 0) &&
+        (this._options & DBQuery.Option.exhaust) === 0;
+},
+	"_exec" : function() {
+    if (!this._cursor) {
+        assert.eq(0, this._numReturned);
+        this._cursorSeen = 0;
+
+        if (this._mongo.useReadCommands() && this._canUseFindCommand()) {
+            var canAttachReadPref = true;
+            var findCmd = this._convertToCommand(canAttachReadPref);
+            var cmdRes = this._db.runReadCommand(findCmd, null, this._options);
+            this._cursor = new DBCommandCursor(this._db, cmdRes, this._batchSize);
+        } else {
+            // The exhaust cursor option is disallowed under a session because it doesn't work as
+            // expected, but all requests from the shell use implicit sessions, so to allow users
+            // to continue using exhaust cursors through the shell, they are only disallowed with
+            // explicit sessions.
+            if (this._db.getSession()._isExplicit) {
+                throw new Error("Cannot run a legacy query on a session.");
+            }
+
+            if (this._special && this._query.readConcern) {
+                throw new Error("readConcern requires use of read commands");
+            }
+
+            if (this._special && this._query.collation) {
+                throw new Error("collation requires use of read commands");
+            }
+
+            if (this._special && this._query._allowDiskUse) {
+                throw new Error("allowDiskUse option requires use of read commands");
+            }
+
+            this._cursor = this._mongo.find(this._ns,
+                                            this._query,
+                                            this._fields,
+                                            this._limit,
+                                            this._skip,
+                                            this._batchSize,
+                                            this._options);
+        }
+    }
+    return this._cursor;
+},
+	"_convertToCommand" : function(canAttachReadPref) {
+    var cmd = {};
+
+    cmd["find"] = this._collection.getName();
+
+    if (this._special) {
+        if (this._query.query) {
+            cmd["filter"] = this._query.query;
+        }
+    } else if (this._query) {
+        cmd["filter"] = this._query;
+    }
+
+    if (this._skip) {
+        cmd["skip"] = this._skip;
+    }
+
+    if (this._batchSize) {
+        if (this._batchSize < 0) {
+            cmd["batchSize"] = -this._batchSize;
+            cmd["singleBatch"] = true;
+        } else {
+            cmd["batchSize"] = this._batchSize;
+        }
+    }
+
+    if (this._limit) {
+        if (this._limit < 0) {
+            cmd["limit"] = -this._limit;
+            cmd["singleBatch"] = true;
+        } else {
+            cmd["limit"] = this._limit;
+            cmd["singleBatch"] = false;
+        }
+    }
+
+    if ("orderby" in this._query) {
+        cmd["sort"] = this._query.orderby;
+    }
+
+    if (this._fields) {
+        cmd["projection"] = this._fields;
+    }
+
+    if ("$hint" in this._query) {
+        cmd["hint"] = this._query.$hint;
+    }
+
+    if ("$comment" in this._query) {
+        cmd["comment"] = this._query.$comment;
+    }
+
+    if ("$maxTimeMS" in this._query) {
+        cmd["maxTimeMS"] = this._query.$maxTimeMS;
+    }
+
+    if ("$max" in this._query) {
+        cmd["max"] = this._query.$max;
+    }
+
+    if ("$min" in this._query) {
+        cmd["min"] = this._query.$min;
+    }
+
+    if ("$returnKey" in this._query) {
+        cmd["returnKey"] = this._query.$returnKey;
+    }
+
+    if ("$showDiskLoc" in this._query) {
+        cmd["showRecordId"] = this._query.$showDiskLoc;
+    }
+
+    if ("readConcern" in this._query) {
+        cmd["readConcern"] = this._query.readConcern;
+    }
+
+    if ("collation" in this._query) {
+        cmd["collation"] = this._query.collation;
+    }
+
+    if ("allowDiskUse" in this._query) {
+        cmd["allowDiskUse"] = this._query.allowDiskUse;
+    }
+
+    if ((this._options & DBQuery.Option.tailable) != 0) {
+        cmd["tailable"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.noTimeout) != 0) {
+        cmd["noCursorTimeout"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.awaitData) != 0) {
+        cmd["awaitData"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.partial) != 0) {
+        cmd["allowPartialResults"] = true;
+    }
+
+    if (canAttachReadPref) {
+        // If there is a readPreference, use the wrapped command form.
+        if ("$readPreference" in this._query) {
+            var prefObj = this._query.$readPreference;
+            cmd = this._db._attachReadPreferenceToCommand(cmd, prefObj);
+        }
+    }
+
+    return cmd;
+},
+	"limit" : function(limit) {
+    this._checkModify();
+    this._limit = limit;
+    return this;
+},
+	"batchSize" : function(batchSize) {
+    this._checkModify();
+    this._batchSize = batchSize;
+    return this;
+},
+	"addOption" : function(option) {
+    this._options |= option;
+    return this;
+},
+	"skip" : function(skip) {
+    this._checkModify();
+    this._skip = skip;
+    return this;
+},
+	"hasNext" : function() {
+    this._exec();
+
+    if (this._limit > 0 && this._cursorSeen >= this._limit) {
+        this._cursor.close();
+        return false;
+    }
+    var o = this._cursor.hasNext();
+    return o;
+},
+	"next" : function() {
+    this._exec();
+
+    var o = this._cursor.hasNext();
+    if (o)
+        this._cursorSeen++;
+    else
+        throw Error("error hasNext: " + o);
+
+    var ret = this._cursor.next();
+    if (ret.$err) {
+        throw _getErrorWithCode(ret, "error: " + tojson(ret));
+    }
+
+    this._numReturned++;
+    return ret;
+},
+	"objsLeftInBatch" : function() {
+    this._exec();
+
+    var ret = this._cursor.objsLeftInBatch();
+    if (ret.$err)
+        throw _getErrorWithCode(ret, "error: " + tojson(ret));
+
+    return ret;
+},
+	"readOnly" : function() {
+    this._exec();
+    this._cursor.readOnly();
+    return this;
+},
+	"getId" : function() {
+    this._exec();
+    return this._cursor.getId();
+},
+	"toArray" : function() {
+    if (this._arr)
+        return this._arr;
+
+    var a = [];
+    while (this.hasNext())
+        a.push(this.next());
+    this._arr = a;
+    return a;
+},
+	"_convertToCountCmd" : function(applySkipLimit) {
+    var cmd = {count: this._collection.getName()};
+
+    if (this._query) {
+        if (this._special) {
+            cmd.query = this._query.query;
+            if (this._query.$maxTimeMS) {
+                cmd.maxTimeMS = this._query.$maxTimeMS;
+            }
+            if (this._query.$hint) {
+                cmd.hint = this._query.$hint;
+            }
+            if (this._query.readConcern) {
+                cmd.readConcern = this._query.readConcern;
+            }
+            if (this._query.collation) {
+                cmd.collation = this._query.collation;
+            }
+        } else {
+            cmd.query = this._query;
+        }
+    }
+
+    if (applySkipLimit) {
+        if (this._limit)
+            cmd.limit = this._limit;
+        if (this._skip)
+            cmd.skip = this._skip;
+    }
+
+    return cmd;
+},
+	"count" : function(applySkipLimit) {
+    var cmd = this._convertToCountCmd(applySkipLimit);
+
+    var res = this._db.runReadCommand(cmd);
+    if (res && res.n != null)
+        return res.n;
+    throw _getErrorWithCode(res, "count failed: " + tojson(res));
+},
+	"size" : function() {
+    return this.count(true);
+},
+	"countReturn" : function() {
+    var c = this.count();
+
+    if (this._skip)
+        c = c - this._skip;
+
+    if (this._limit > 0 && this._limit < c)
+        return this._limit;
+
+    return c;
+},
+	"itcount" : function() {
+    var num = 0;
+
+    // Track how many bytes we've used this cursor to iterate iterated.  This function can be called
+    // with some very large cursors.  SpiderMonkey appears happy to allow these objects to
+    // accumulate, so regular gc() avoids an overly large memory footprint.
+    //
+    // TODO: migrate this function into c++
+    var bytesSinceGC = 0;
+
+    while (this.hasNext()) {
+        num++;
+        var nextDoc = this.next();
+        bytesSinceGC += Object.bsonsize(nextDoc);
+
+        // Garbage collect every 10 MB.
+        if (bytesSinceGC > (10 * 1024 * 1024)) {
+            bytesSinceGC = 0;
+            gc();
+        }
+    }
+    return num;
+},
+	"length" : function() {
+    return this.toArray().length;
+},
+	"_addSpecial" : function(name, value) {
+    this._ensureSpecial();
+    this._query[name] = value;
+    return this;
+},
+	"sort" : function(sortBy) {
+    return this._addSpecial("orderby", sortBy);
+},
+	"hint" : function(hint) {
+    return this._addSpecial("$hint", hint);
+},
+	"min" : function(min) {
+    return this._addSpecial("$min", min);
+},
+	"max" : function(max) {
+    return this._addSpecial("$max", max);
+},
+	"showDiskLoc" : function() {
+    return this.showRecordId();
+},
+	"showRecordId" : function() {
+    return this._addSpecial("$showDiskLoc", true);
+},
+	"maxTimeMS" : function(maxTimeMS) {
+    return this._addSpecial("$maxTimeMS", maxTimeMS);
+},
+	"readConcern" : function(level, atClusterTime = undefined) {
+    var readConcernObj =
+        atClusterTime ? {level: level, atClusterTime: atClusterTime} : {level: level};
+
+    return this._addSpecial("readConcern", readConcernObj);
+},
+	"collation" : function(collationSpec) {
+    return this._addSpecial("collation", collationSpec);
+},
+	"allowDiskUse" : function() {
+    return this._addSpecial("allowDiskUse", true);
+},
+	"readPref" : function(mode, tagSet, hedgeOptions) {
+    var readPrefObj = {mode: mode};
+
+    if (tagSet) {
+        readPrefObj.tags = tagSet;
+    }
+
+    if (hedgeOptions) {
+        readPrefObj.hedge = hedgeOptions;
+    }
+
+    return this._addSpecial("$readPreference", readPrefObj);
+},
+	"forEach" : function(func) {
+    while (this.hasNext())
+        func(this.next());
+},
+	"map" : function(func) {
+    var a = [];
+    while (this.hasNext())
+        a.push(func(this.next()));
+    return a;
+},
+	"arrayAccess" : function(idx) {
+    return this.toArray()[idx];
+},
+	"comment" : function(comment) {
+    return this._addSpecial("$comment", comment);
+},
+	"explain" : function(verbose) {
+    var explainQuery = new DBExplainQuery(this, verbose);
+    return explainQuery.finish();
+},
+	"returnKey" : function() {
+    return this._addSpecial("$returnKey", true);
+},
+	"pretty" : function() {
+    this._prettyShell = true;
+    return this;
+},
+	"shellPrint" : function() {
+    try {
+        var start = new Date().getTime();
+        var n = 0;
+        while (this.hasNext() && n < DBQuery.shellBatchSize) {
+            var s = this._prettyShell ? tojson(this.next()) : tojson(this.next(), "", true);
+            print(s);
+            n++;
+        }
+        if (typeof _verboseShell !== 'undefined' && _verboseShell) {
+            var time = new Date().getTime() - start;
+            print("Fetched " + n + " record(s) in " + time + "ms");
+        }
+        if (this.hasNext()) {
+            print("Type \"it\" for more");
+            ___it___ = this;
+        } else {
+            ___it___ = null;
+        }
+    } catch (e) {
+        print(e);
+    }
+},
+	"toString" : function() {
+    return "DBQuery: " + this._ns + " -> " + tojson(this._query);
+},
+	"allowPartialResults" : function() {
+    this._checkModify();
+    this.addOption(DBQuery.Option.partial);
+    return this;
+},
+	"noCursorTimeout" : function() {
+    this._checkModify();
+    this.addOption(DBQuery.Option.noTimeout);
+    return this;
+},
+	"projection" : function(document) {
+    this._checkModify();
+    this._fields = document;
+    return this;
+},
+	"tailable" : function(awaitData) {
+    this._checkModify();
+    this.addOption(DBQuery.Option.tailable);
+
+    // Set await data if either specifically set or not specified
+    if (awaitData || awaitData == null) {
+        this.addOption(DBQuery.Option.awaitData);
+    }
+
+    return this;
+},
+	"modifiers" : function(document) {
+    this._checkModify();
+
+    for (var name in document) {
+        if (name[0] != '$') {
+            throw new Error('All modifiers must start with a $ such as $returnKey');
+        }
+    }
+
+    for (var name in document) {
+        this._addSpecial(name, document[name]);
+    }
+
+    return this;
+},
+	"close" : function() {
+    if (this._cursor) {
+        this._cursor.close();
+    }
+},
+	"isClosed" : function() {
+    this._exec();
+    return this._cursor.isClosed();
+},
+	"isExhausted" : function() {
+    this._exec();
+    return this._cursor.isClosed() && this._cursor.objsLeftInBatch() === 0;
+},
+	"getClusterTime" : function() {
+    // Return the read timestamp for snapshot reads, or undefined for other readConcern levels.
+    this._exec();
+    return this._cursor.getClusterTime();
+}
+}
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("01a7406b-3054-4402-8ca6-39e0e1ff64f6") }
+MongoDB server version: 5.0.6
+null
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("cdf626ef-c5f5-4f1f-bab2-7b49c695710e") }
+MongoDB server version: 5.0.6
+{
+	"_id" : ObjectId("628e87fbcfd8e4a2c3b642d0"),
+	"sex" : "Male",
+	"first_name" : "Larry",
+	"last_name" : "Romero",
+	"job" : "Speech Pathologist",
+	"email" : "lromero6j@reference.com",
+	"location" : {
+		"city" : "Dresden",
+		"address" : {
+			"streetname" : "Shelley",
+			"streetnumber" : "8690"
+		}
+	},
+	"description" : "sapien quis libero nullam sit amet turpis elementum ligula vehicula",
+	"height" : "197.68",
+	"weight" : "70.9",
+	"birth_date" : "1958-05-03T07:23:16Z",
+	"nationality" : "Germany",
+	"credit" : [
+		{
+			"type" : "solo",
+			"number" : "3530733569132235",
+			"currency" : "CNY",
+			"balance" : "4413.72"
+		},
+		{
+			"type" : "mastercard",
+			"number" : "3546411670581739",
+			"currency" : "PEN",
+			"balance" : "6157.36"
+		},
+		{
+			"type" : "switch",
+			"number" : "3578595580550809",
+			"currency" : "ARS",
+			"balance" : "4534.77"
+		}
+	]
+}
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("2f0ae5f1-1e49-472b-bcb3-81fe5eedd350") }
+MongoDB server version: 5.0.6
+{
+	"_mongo" : connection to 127.0.0.1:27017,
+	"_db" : nbd,
+	"_collection" : nbd.people,
+	"_ns" : "nbd.people",
+	"_query" : {
+		"sex" : "Male",
+		"nationality" : "Germany"
+	},
+	"_fields" : null,
+	"_limit" : 0,
+	"_skip" : 0,
+	"_batchSize" : 0,
+	"_options" : 0,
+	"_cursor" : null,
+	"_numReturned" : 0,
+	"_special" : false,
+	"help" : function() {
+    print("find(<predicate>, <projection>) modifiers");
+    print("\t.sort({...})");
+    print("\t.limit(<n>)");
+    print("\t.skip(<n>)");
+    print("\t.batchSize(<n>) - sets the number of docs to return per getMore");
+    print("\t.collation({...})");
+    print("\t.hint({...})");
+    print("\t.readConcern(<level>)");
+    print("\t.readPref(<mode>, <tagset>)");
+    print(
+        "\t.count(<applySkipLimit>) - total # of objects matching query. by default ignores skip,limit");
+    print("\t.size() - total # of objects cursor would return, honors skip,limit");
+    print(
+        "\t.explain(<verbosity>) - accepted verbosities are {'queryPlanner', 'executionStats', 'allPlansExecution'}");
+    print("\t.min({...})");
+    print("\t.max({...})");
+    print("\t.maxTimeMS(<n>)");
+    print("\t.comment(<comment>)");
+    print("\t.tailable(<isAwaitData>)");
+    print("\t.noCursorTimeout()");
+    print("\t.allowPartialResults()");
+    print("\t.returnKey()");
+    print("\t.showRecordId() - adds a $recordId field to each returned object");
+    print("\t.allowDiskUse() - allow using disk in completing the query");
+
+    print("\nCursor methods");
+    print("\t.toArray() - iterates through docs and returns an array of the results");
+    print("\t.forEach(<func>)");
+    print("\t.map(<func>)");
+    print("\t.hasNext()");
+    print("\t.next()");
+    print("\t.close()");
+    print(
+        "\t.objsLeftInBatch() - returns count of docs left in current batch (when exhausted, a new getMore will be issued)");
+    print("\t.itcount() - iterates through documents and counts them");
+    print("\t.getClusterTime() - returns the read timestamp for snapshot reads");
+    print("\t.pretty() - pretty print each document, possibly over multiple lines");
+},
+	"clone" : function() {
+    var q = new DBQuery(this._mongo,
+                        this._db,
+                        this._collection,
+                        this._ns,
+                        this._query,
+                        this._fields,
+                        this._limit,
+                        this._skip,
+                        this._batchSize,
+                        this._options);
+    q._special = this._special;
+    return q;
+},
+	"_ensureSpecial" : function() {
+    if (this._special)
+        return;
+
+    var n = {query: this._query};
+    this._query = n;
+    this._special = true;
+},
+	"_checkModify" : function() {
+    if (this._cursor)
+        throw Error("query already executed");
+},
+	"_canUseFindCommand" : function() {
+    // Since runCommand() is implemented by running a findOne() against the $cmd collection, we have
+    // to make sure that we don't try to run a find command against the $cmd collection.
+    //
+    // We also forbid queries with the exhaust option from running as find commands, because the
+    // find command does not support exhaust.
+    return (this._collection.getName().indexOf("$cmd") !== 0) &&
+        (this._options & DBQuery.Option.exhaust) === 0;
+},
+	"_exec" : function() {
+    if (!this._cursor) {
+        assert.eq(0, this._numReturned);
+        this._cursorSeen = 0;
+
+        if (this._mongo.useReadCommands() && this._canUseFindCommand()) {
+            var canAttachReadPref = true;
+            var findCmd = this._convertToCommand(canAttachReadPref);
+            var cmdRes = this._db.runReadCommand(findCmd, null, this._options);
+            this._cursor = new DBCommandCursor(this._db, cmdRes, this._batchSize);
+        } else {
+            // The exhaust cursor option is disallowed under a session because it doesn't work as
+            // expected, but all requests from the shell use implicit sessions, so to allow users
+            // to continue using exhaust cursors through the shell, they are only disallowed with
+            // explicit sessions.
+            if (this._db.getSession()._isExplicit) {
+                throw new Error("Cannot run a legacy query on a session.");
+            }
+
+            if (this._special && this._query.readConcern) {
+                throw new Error("readConcern requires use of read commands");
+            }
+
+            if (this._special && this._query.collation) {
+                throw new Error("collation requires use of read commands");
+            }
+
+            if (this._special && this._query._allowDiskUse) {
+                throw new Error("allowDiskUse option requires use of read commands");
+            }
+
+            this._cursor = this._mongo.find(this._ns,
+                                            this._query,
+                                            this._fields,
+                                            this._limit,
+                                            this._skip,
+                                            this._batchSize,
+                                            this._options);
+        }
+    }
+    return this._cursor;
+},
+	"_convertToCommand" : function(canAttachReadPref) {
+    var cmd = {};
+
+    cmd["find"] = this._collection.getName();
+
+    if (this._special) {
+        if (this._query.query) {
+            cmd["filter"] = this._query.query;
+        }
+    } else if (this._query) {
+        cmd["filter"] = this._query;
+    }
+
+    if (this._skip) {
+        cmd["skip"] = this._skip;
+    }
+
+    if (this._batchSize) {
+        if (this._batchSize < 0) {
+            cmd["batchSize"] = -this._batchSize;
+            cmd["singleBatch"] = true;
+        } else {
+            cmd["batchSize"] = this._batchSize;
+        }
+    }
+
+    if (this._limit) {
+        if (this._limit < 0) {
+            cmd["limit"] = -this._limit;
+            cmd["singleBatch"] = true;
+        } else {
+            cmd["limit"] = this._limit;
+            cmd["singleBatch"] = false;
+        }
+    }
+
+    if ("orderby" in this._query) {
+        cmd["sort"] = this._query.orderby;
+    }
+
+    if (this._fields) {
+        cmd["projection"] = this._fields;
+    }
+
+    if ("$hint" in this._query) {
+        cmd["hint"] = this._query.$hint;
+    }
+
+    if ("$comment" in this._query) {
+        cmd["comment"] = this._query.$comment;
+    }
+
+    if ("$maxTimeMS" in this._query) {
+        cmd["maxTimeMS"] = this._query.$maxTimeMS;
+    }
+
+    if ("$max" in this._query) {
+        cmd["max"] = this._query.$max;
+    }
+
+    if ("$min" in this._query) {
+        cmd["min"] = this._query.$min;
+    }
+
+    if ("$returnKey" in this._query) {
+        cmd["returnKey"] = this._query.$returnKey;
+    }
+
+    if ("$showDiskLoc" in this._query) {
+        cmd["showRecordId"] = this._query.$showDiskLoc;
+    }
+
+    if ("readConcern" in this._query) {
+        cmd["readConcern"] = this._query.readConcern;
+    }
+
+    if ("collation" in this._query) {
+        cmd["collation"] = this._query.collation;
+    }
+
+    if ("allowDiskUse" in this._query) {
+        cmd["allowDiskUse"] = this._query.allowDiskUse;
+    }
+
+    if ((this._options & DBQuery.Option.tailable) != 0) {
+        cmd["tailable"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.noTimeout) != 0) {
+        cmd["noCursorTimeout"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.awaitData) != 0) {
+        cmd["awaitData"] = true;
+    }
+
+    if ((this._options & DBQuery.Option.partial) != 0) {
+        cmd["allowPartialResults"] = true;
+    }
+
+    if (canAttachReadPref) {
+        // If there is a readPreference, use the wrapped command form.
+        if ("$readPreference" in this._query) {
+            var prefObj = this._query.$readPreference;
+            cmd = this._db._attachReadPreferenceToCommand(cmd, prefObj);
+        }
+    }
+
+    return cmd;
+},
+	"limit" : function(limit) {
+    this._checkModify();
+    this._limit = limit;
+    return this;
+},
+	"batchSize" : function(batchSize) {
+    this._checkModify();
+    this._batchSize = batchSize;
+    return this;
+},
+	"addOption" : function(option) {
+    this._options |= option;
+    return this;
+},
+	"skip" : function(skip) {
+    this._checkModify();
+    this._skip = skip;
+    return this;
+},
+	"hasNext" : function() {
+    this._exec();
+
+    if (this._limit > 0 && this._cursorSeen >= this._limit) {
+        this._cursor.close();
+        return false;
+    }
+    var o = this._cursor.hasNext();
+    return o;
+},
+	"next" : function() {
+    this._exec();
+
+    var o = this._cursor.hasNext();
+    if (o)
+        this._cursorSeen++;
+    else
+        throw Error("error hasNext: " + o);
+
+    var ret = this._cursor.next();
+    if (ret.$err) {
+        throw _getErrorWithCode(ret, "error: " + tojson(ret));
+    }
+
+    this._numReturned++;
+    return ret;
+},
+	"objsLeftInBatch" : function() {
+    this._exec();
+
+    var ret = this._cursor.objsLeftInBatch();
+    if (ret.$err)
+        throw _getErrorWithCode(ret, "error: " + tojson(ret));
+
+    return ret;
+},
+	"readOnly" : function() {
+    this._exec();
+    this._cursor.readOnly();
+    return this;
+},
+	"getId" : function() {
+    this._exec();
+    return this._cursor.getId();
+},
+	"toArray" : function() {
+    if (this._arr)
+        return this._arr;
+
+    var a = [];
+    while (this.hasNext())
+        a.push(this.next());
+    this._arr = a;
+    return a;
+},
+	"_convertToCountCmd" : function(applySkipLimit) {
+    var cmd = {count: this._collection.getName()};
+
+    if (this._query) {
+        if (this._special) {
+            cmd.query = this._query.query;
+            if (this._query.$maxTimeMS) {
+                cmd.maxTimeMS = this._query.$maxTimeMS;
+            }
+            if (this._query.$hint) {
+                cmd.hint = this._query.$hint;
+            }
+            if (this._query.readConcern) {
+                cmd.readConcern = this._query.readConcern;
+            }
+            if (this._query.collation) {
+                cmd.collation = this._query.collation;
+            }
+        } else {
+            cmd.query = this._query;
+        }
+    }
+
+    if (applySkipLimit) {
+        if (this._limit)
+            cmd.limit = this._limit;
+        if (this._skip)
+            cmd.skip = this._skip;
+    }
+
+    return cmd;
+},
+	"count" : function(applySkipLimit) {
+    var cmd = this._convertToCountCmd(applySkipLimit);
+
+    var res = this._db.runReadCommand(cmd);
+    if (res && res.n != null)
+        return res.n;
+    throw _getErrorWithCode(res, "count failed: " + tojson(res));
+},
+	"size" : function() {
+    return this.count(true);
+},
+	"countReturn" : function() {
+    var c = this.count();
+
+    if (this._skip)
+        c = c - this._skip;
+
+    if (this._limit > 0 && this._limit < c)
+        return this._limit;
+
+    return c;
+},
+	"itcount" : function() {
+    var num = 0;
+
+    // Track how many bytes we've used this cursor to iterate iterated.  This function can be called
+    // with some very large cursors.  SpiderMonkey appears happy to allow these objects to
+    // accumulate, so regular gc() avoids an overly large memory footprint.
+    //
+    // TODO: migrate this function into c++
+    var bytesSinceGC = 0;
+
+    while (this.hasNext()) {
+        num++;
+        var nextDoc = this.next();
+        bytesSinceGC += Object.bsonsize(nextDoc);
+
+        // Garbage collect every 10 MB.
+        if (bytesSinceGC > (10 * 1024 * 1024)) {
+            bytesSinceGC = 0;
+            gc();
+        }
+    }
+    return num;
+},
+	"length" : function() {
+    return this.toArray().length;
+},
+	"_addSpecial" : function(name, value) {
+    this._ensureSpecial();
+    this._query[name] = value;
+    return this;
+},
+	"sort" : function(sortBy) {
+    return this._addSpecial("orderby", sortBy);
+},
+	"hint" : function(hint) {
+    return this._addSpecial("$hint", hint);
+},
+	"min" : function(min) {
+    return this._addSpecial("$min", min);
+},
+	"max" : function(max) {
+    return this._addSpecial("$max", max);
+},
+	"showDiskLoc" : function() {
+    return this.showRecordId();
+},
+	"showRecordId" : function() {
+    return this._addSpecial("$showDiskLoc", true);
+},
+	"maxTimeMS" : function(maxTimeMS) {
+    return this._addSpecial("$maxTimeMS", maxTimeMS);
+},
+	"readConcern" : function(level, atClusterTime = undefined) {
+    var readConcernObj =
+        atClusterTime ? {level: level, atClusterTime: atClusterTime} : {level: level};
+
+    return this._addSpecial("readConcern", readConcernObj);
+},
+	"collation" : function(collationSpec) {
+    return this._addSpecial("collation", collationSpec);
+},
+	"allowDiskUse" : function() {
+    return this._addSpecial("allowDiskUse", true);
+},
+	"readPref" : function(mode, tagSet, hedgeOptions) {
+    var readPrefObj = {mode: mode};
+
+    if (tagSet) {
+        readPrefObj.tags = tagSet;
+    }
+
+    if (hedgeOptions) {
+        readPrefObj.hedge = hedgeOptions;
+    }
+
+    return this._addSpecial("$readPreference", readPrefObj);
+},
+	"forEach" : function(func) {
+    while (this.hasNext())
+        func(this.next());
+},
+	"map" : function(func) {
+    var a = [];
+    while (this.hasNext())
+        a.push(func(this.next()));
+    return a;
+},
+	"arrayAccess" : function(idx) {
+    return this.toArray()[idx];
+},
+	"comment" : function(comment) {
+    return this._addSpecial("$comment", comment);
+},
+	"explain" : function(verbose) {
+    var explainQuery = new DBExplainQuery(this, verbose);
+    return explainQuery.finish();
+},
+	"returnKey" : function() {
+    return this._addSpecial("$returnKey", true);
+},
+	"pretty" : function() {
+    this._prettyShell = true;
+    return this;
+},
+	"shellPrint" : function() {
+    try {
+        var start = new Date().getTime();
+        var n = 0;
+        while (this.hasNext() && n < DBQuery.shellBatchSize) {
+            var s = this._prettyShell ? tojson(this.next()) : tojson(this.next(), "", true);
+            print(s);
+            n++;
+        }
+        if (typeof _verboseShell !== 'undefined' && _verboseShell) {
+            var time = new Date().getTime() - start;
+            print("Fetched " + n + " record(s) in " + time + "ms");
+        }
+        if (this.hasNext()) {
+            print("Type \"it\" for more");
+            ___it___ = this;
+        } else {
+            ___it___ = null;
+        }
+    } catch (e) {
+        print(e);
+    }
+},
+	"toString" : function() {
+    return "DBQuery: " + this._ns + " -> " + tojson(this._query);
+},
+	"allowPartialResults" : function() {
+    this._checkModify();
+    this.addOption(DBQuery.Option.partial);
+    return this;
+},
+	"noCursorTimeout" : function() {
+    this._checkModify();
+    this.addOption(DBQuery.Option.noTimeout);
+    return this;
+},
+	"projection" : function(document) {
+    this._checkModify();
+    this._fields = document;
+    return this;
+},
+	"tailable" : function(awaitData) {
+    this._checkModify();
+    this.addOption(DBQuery.Option.tailable);
+
+    // Set await data if either specifically set or not specified
+    if (awaitData || awaitData == null) {
+        this.addOption(DBQuery.Option.awaitData);
+    }
+
+    return this;
+},
+	"modifiers" : function(document) {
+    this._checkModify();
+
+    for (var name in document) {
+        if (name[0] != '$') {
+            throw new Error('All modifiers must start with a $ such as $returnKey');
+        }
+    }
+
+    for (var name in document) {
+        this._addSpecial(name, document[name]);
+    }
+
+    return this;
+},
+	"close" : function() {
+    if (this._cursor) {
+        this._cursor.close();
+    }
+},
+	"isClosed" : function() {
+    this._exec();
+    return this._cursor.isClosed();
+},
+	"isExhausted" : function() {
+    this._exec();
+    return this._cursor.isClosed() && this._cursor.objsLeftInBatch() === 0;
+},
+	"getClusterTime" : function() {
+    // Return the read timestamp for snapshot reads, or undefined for other readConcern levels.
+    this._exec();
+    return this._cursor.getClusterTime();
+}
+}
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("278a65f3-41f8-4f22-b8c5-86ada150b297") }
+MongoDB server version: 5.0.6
+[
+	{
+		"_id" : ObjectId("628e87fbcfd8e4a2c3b642d0"),
+		"sex" : "Male",
+		"first_name" : "Larry",
+		"last_name" : "Romero",
+		"job" : "Speech Pathologist",
+		"email" : "lromero6j@reference.com",
+		"location" : {
+			"city" : "Dresden",
+			"address" : {
+				"streetname" : "Shelley",
+				"streetnumber" : "8690"
+			}
+		},
+		"description" : "sapien quis libero nullam sit amet turpis elementum ligula vehicula",
+		"height" : "197.68",
+		"weight" : "70.9",
+		"birth_date" : "1958-05-03T07:23:16Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "solo",
+				"number" : "3530733569132235",
+				"currency" : "CNY",
+				"balance" : "4413.72"
+			},
+			{
+				"type" : "mastercard",
+				"number" : "3546411670581739",
+				"currency" : "PEN",
+				"balance" : "6157.36"
+			},
+			{
+				"type" : "switch",
+				"number" : "3578595580550809",
+				"currency" : "ARS",
+				"balance" : "4534.77"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fbcfd8e4a2c3b6443d"),
+		"sex" : "Male",
+		"first_name" : "Benjamin",
+		"last_name" : "Romero",
+		"job" : "Help Desk Technician",
+		"email" : "bromerogq@ameblo.jp",
+		"location" : {
+			"city" : "Mülheim an der Ruhr",
+			"address" : {
+				"streetname" : "Milwaukee",
+				"streetnumber" : "24607"
+			}
+		},
+		"description" : "nulla facilisi cras non velit nec nisi vulputate nonummy maecenas tincidunt lacus at velit vivamus",
+		"height" : "170.72",
+		"weight" : "65.54",
+		"birth_date" : "2010-10-11T19:45:58Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "maestro",
+				"number" : "3530193969356720",
+				"currency" : "PYG",
+				"balance" : "2825.74"
+			},
+			{
+				"type" : "solo",
+				"number" : "3532231866333851",
+				"currency" : "XCD",
+				"balance" : "6465.87"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b64c32"),
+		"sex" : "Male",
+		"first_name" : "Shawn",
+		"last_name" : "Little",
+		"job" : "Computer Systems Analyst III",
+		"email" : "slittle21c@gizmodo.com",
+		"location" : {
+			"city" : "Hamburg",
+			"address" : {
+				"streetname" : "Clyde Gallagher",
+				"streetnumber" : "2260"
+			}
+		},
+		"description" : "consequat lectus in est risus auctor sed tristique in tempus sit amet sem",
+		"height" : "157.63",
+		"weight" : "73.19",
+		"birth_date" : "2006-06-27T16:35:13Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "jcb",
+				"number" : "6763102596520336067",
+				"currency" : "KRW",
+				"balance" : "5140.54"
+			},
+			{
+				"type" : "jcb",
+				"number" : "6376707526424422",
+				"currency" : "HNL",
+				"balance" : "5388.13"
+			},
+			{
+				"type" : "jcb",
+				"number" : "5602258501325803090",
+				"currency" : "CAD",
+				"balance" : "6252.06"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b64c8a"),
+		"sex" : "Male",
+		"first_name" : "Samuel",
+		"last_name" : "Flores",
+		"job" : "Safety Technician I",
+		"email" : "sflores23t@howstuffworks.com",
+		"location" : {
+			"city" : "Duisburg",
+			"address" : {
+				"streetname" : "Annamark",
+				"streetnumber" : "195"
+			}
+		},
+		"description" : "non mauris morbi non lectus aliquam sit amet diam in magna bibendum imperdiet",
+		"height" : "195.74",
+		"weight" : "64.29",
+		"birth_date" : "1950-10-06T09:17:20Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "mastercard",
+				"number" : "3555351377701859",
+				"currency" : "KZT",
+				"balance" : "7560.67"
+			},
+			{
+				"type" : "jcb",
+				"number" : "3549151932606240",
+				"currency" : "CNY",
+				"balance" : "3919.03"
+			},
+			{
+				"type" : "diners-club-carte-blanche",
+				"number" : "3551052666290505",
+				"currency" : "CAD",
+				"balance" : "5541.51"
+			},
+			{
+				"type" : "jcb",
+				"number" : "346979779462587",
+				"currency" : "CNY",
+				"balance" : "4643.31"
+			},
+			{
+				"type" : "laser",
+				"number" : "6331107054797981331",
+				"currency" : "NOK",
+				"balance" : "5204.55"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b64e2f"),
+		"sex" : "Male",
+		"first_name" : "Craig",
+		"last_name" : "Snyder",
+		"job" : "Actuary",
+		"email" : "csnyder2fh@comcast.net",
+		"location" : {
+			"city" : "Halle",
+			"address" : {
+				"streetname" : "Lakewood",
+				"streetnumber" : "69"
+			}
+		},
+		"description" : "nibh ligula nec sem duis aliquam convallis nunc proin at turpis",
+		"height" : "169.54",
+		"weight" : "60.22",
+		"birth_date" : "1950-05-27T19:21:12Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "visa-electron",
+				"number" : "30034008149885",
+				"currency" : "CNY",
+				"balance" : "5504.19"
+			},
+			{
+				"type" : "mastercard",
+				"number" : "6396328888133463",
+				"currency" : "PHP",
+				"balance" : "4549.01"
+			},
+			{
+				"type" : "jcb",
+				"number" : "6763546216327801361",
+				"currency" : "IDR",
+				"balance" : "4102.4"
+			},
+			{
+				"type" : "jcb",
+				"number" : "3559902257415451",
+				"currency" : "CNY",
+				"balance" : "4081.45"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b64ef1"),
+		"sex" : "Male",
+		"first_name" : "Sean",
+		"last_name" : "Duncan",
+		"job" : "VP Product Management",
+		"email" : "sduncan2kr@constantcontact.com",
+		"location" : {
+			"city" : "Berlin",
+			"address" : {
+				"streetname" : "Daystar",
+				"streetnumber" : "676"
+			}
+		},
+		"description" : "sagittis dui vel nisl duis ac nibh fusce lacus purus aliquet",
+		"height" : "168.4",
+		"weight" : "69.64",
+		"birth_date" : "1996-04-21T10:03:15Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "laser",
+				"number" : "3555505685239403",
+				"currency" : "RUB",
+				"balance" : "5562.31"
+			},
+			{
+				"type" : "jcb",
+				"number" : "5100132140606533",
+				"currency" : "EUR",
+				"balance" : "5342.05"
+			},
+			{
+				"type" : "bankcard",
+				"number" : "6304446626725423",
+				"currency" : "USD",
+				"balance" : "6162.99"
+			},
+			{
+				"type" : "jcb",
+				"number" : "36484922710342",
+				"currency" : "EUR",
+				"balance" : "4376.29"
+			},
+			{
+				"type" : "mastercard",
+				"number" : "6334776931042153",
+				"currency" : "USD",
+				"balance" : "4480.2"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b65391"),
+		"sex" : "Male",
+		"first_name" : "Lawrence",
+		"last_name" : "Welch",
+		"job" : "Programmer IV",
+		"email" : "lwelch3hv@vinaora.com",
+		"location" : {
+			"city" : "Cottbus",
+			"address" : {
+				"streetname" : "Milwaukee",
+				"streetnumber" : "59"
+			}
+		},
+		"description" : "ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae donec pharetra magna vestibulum aliquet ultrices erat tortor",
+		"height" : "173.92",
+		"weight" : "79.07",
+		"birth_date" : "2010-06-13T18:44:26Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "jcb",
+				"number" : "3533442768305884",
+				"currency" : "YER",
+				"balance" : "4875.81"
+			},
+			{
+				"type" : "diners-club-enroute",
+				"number" : "560224337801149807",
+				"currency" : "BRL",
+				"balance" : "4951.83"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b6550b"),
+		"sex" : "Male",
+		"first_name" : "George",
+		"last_name" : "Riley",
+		"job" : "Developer III",
+		"email" : "griley3sb@nature.com",
+		"location" : {
+			"city" : "Nürnberg",
+			"address" : {
+				"streetname" : "Forest Dale",
+				"streetnumber" : "1572"
+			}
+		},
+		"description" : "mattis nibh ligula nec sem duis aliquam convallis nunc proin",
+		"height" : "171.61",
+		"weight" : "71.21",
+		"birth_date" : "1992-08-19T18:21:03Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "switch",
+				"number" : "67060415273930574",
+				"currency" : "SEK",
+				"balance" : "5103.41"
+			},
+			{
+				"type" : "china-unionpay",
+				"number" : "5602213596361352",
+				"currency" : "CNY",
+				"balance" : "5172.54"
+			},
+			{
+				"type" : "jcb",
+				"number" : "5592017944166682",
+				"currency" : "PEN",
+				"balance" : "5312.46"
+			},
+			{
+				"type" : "jcb",
+				"number" : "6763417469295745",
+				"currency" : "CNY",
+				"balance" : "3883.7"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b656dd"),
+		"sex" : "Male",
+		"first_name" : "Samuel",
+		"last_name" : "Dean",
+		"job" : "Geological Engineer",
+		"email" : "sdean459@nytimes.com",
+		"location" : {
+			"city" : "Solingen",
+			"address" : {
+				"streetname" : "Dawn",
+				"streetnumber" : "888"
+			}
+		},
+		"description" : "dui nec nisi volutpat eleifend donec ut dolor morbi vel lectus in quam fringilla rhoncus mauris enim",
+		"height" : "172.96",
+		"weight" : "68.65",
+		"birth_date" : "1944-03-20T15:55:36Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "switch",
+				"number" : "201864776633337",
+				"currency" : "CNY",
+				"balance" : "4898.89"
+			},
+			{
+				"type" : "jcb",
+				"number" : "3552382704063930",
+				"currency" : "IDR",
+				"balance" : "4501.62"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b65851"),
+		"sex" : "Male",
+		"first_name" : "Samuel",
+		"last_name" : "Evans",
+		"job" : "Product Engineer",
+		"email" : "sevans4fh@examiner.com",
+		"location" : {
+			"city" : "Hamburg",
+			"address" : {
+				"streetname" : "Brentwood",
+				"streetnumber" : "6"
+			}
+		},
+		"description" : "mus etiam vel augue vestibulum rutrum rutrum neque aenean auctor gravida sem praesent",
+		"height" : "170.18",
+		"weight" : "76.21",
+		"birth_date" : "2007-11-17T16:07:41Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "jcb",
+				"number" : "4017959913393",
+				"currency" : "SEK",
+				"balance" : "3867.38"
+			},
+			{
+				"type" : "jcb",
+				"number" : "5100136044479699",
+				"currency" : "CNY",
+				"balance" : "4323.61"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b65897"),
+		"sex" : "Male",
+		"first_name" : "Jose",
+		"last_name" : "Wells",
+		"job" : "Senior Cost Accountant",
+		"email" : "jwells4hi@cbslocal.com",
+		"location" : {
+			"city" : "Karlsruhe",
+			"address" : {
+				"streetname" : "Pleasure",
+				"streetnumber" : "1620"
+			}
+		},
+		"description" : "adipiscing lorem vitae mattis nibh ligula nec sem duis aliquam convallis nunc proin at turpis a",
+		"height" : "164.86",
+		"weight" : "64.46",
+		"birth_date" : "1982-10-14T20:14:00Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "switch",
+				"number" : "3533603998100961",
+				"currency" : "CNY",
+				"balance" : "7459.41"
+			},
+			{
+				"type" : "maestro",
+				"number" : "561024810835487021",
+				"currency" : "JPY",
+				"balance" : "5778.39"
+			},
+			{
+				"type" : "visa",
+				"number" : "6376734008130525",
+				"currency" : "CNY",
+				"balance" : "4143.67"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b65b58"),
+		"sex" : "Male",
+		"first_name" : "Gerald",
+		"last_name" : "Duncan",
+		"job" : "Software Consultant",
+		"email" : "gduncan515@g.co",
+		"location" : {
+			"city" : "Wuppertal",
+			"address" : {
+				"streetname" : "Arizona",
+				"streetnumber" : "89998"
+			}
+		},
+		"description" : "pede venenatis non sodales sed tincidunt eu felis fusce posuere felis sed lacus morbi sem mauris laoreet ut rhoncus",
+		"height" : "161.59",
+		"weight" : "76.15",
+		"birth_date" : "1951-10-23T22:39:39Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "maestro",
+				"number" : "560223873683952844",
+				"currency" : "PHP",
+				"balance" : "5708.83"
+			},
+			{
+				"type" : "diners-club-carte-blanche",
+				"number" : "4405827806667795",
+				"currency" : "BOB",
+				"balance" : "5185.93"
+			},
+			{
+				"type" : "jcb",
+				"number" : "343951328412044",
+				"currency" : "NOK",
+				"balance" : "6039.27"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fccfd8e4a2c3b65b6c"),
+		"sex" : "Male",
+		"first_name" : "Roy",
+		"last_name" : "Martinez",
+		"job" : "Staff Accountant II",
+		"email" : "rmartinez51n@squarespace.com",
+		"location" : {
+			"city" : "Saarbrücken",
+			"address" : {
+				"streetname" : "Hanover",
+				"streetnumber" : "2"
+			}
+		},
+		"description" : "mus etiam vel augue vestibulum rutrum rutrum neque aenean auctor gravida sem praesent id massa id",
+		"height" : "172.11",
+		"weight" : "63.58",
+		"birth_date" : "1979-12-18T05:51:56Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "visa",
+				"number" : "4844334391676918",
+				"currency" : "XCD",
+				"balance" : "6050.41"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fdcfd8e4a2c3b65fc5"),
+		"sex" : "Male",
+		"first_name" : "Kevin",
+		"last_name" : "Gonzalez",
+		"job" : "Information Systems Manager",
+		"email" : "kgonzalez5wk@whitehouse.gov",
+		"location" : {
+			"city" : "Berlin",
+			"address" : {
+				"streetname" : "Thackeray",
+				"streetnumber" : "1020"
+			}
+		},
+		"description" : "diam vitae quam suspendisse potenti nullam porttitor lacus at turpis donec posuere metus",
+		"height" : "178.04",
+		"weight" : "70.22",
+		"birth_date" : "1966-02-19T01:50:50Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "jcb",
+				"number" : "676764045687526937",
+				"currency" : "SEK",
+				"balance" : "4805.7"
+			},
+			{
+				"type" : "diners-club-us-ca",
+				"number" : "6759758436646215660",
+				"currency" : "JPY",
+				"balance" : "4725.59"
+			},
+			{
+				"type" : "jcb",
+				"number" : "3551127456445608",
+				"currency" : "MKD",
+				"balance" : "4641.81"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fdcfd8e4a2c3b66041"),
+		"sex" : "Male",
+		"first_name" : "Dennis",
+		"last_name" : "Scott",
+		"job" : "Web Developer II",
+		"email" : "dscott600@cisco.com",
+		"location" : {
+			"city" : "Hamburg",
+			"address" : {
+				"streetname" : "Rowland",
+				"streetnumber" : "918"
+			}
+		},
+		"description" : "non velit donec diam neque vestibulum eget vulputate ut ultrices",
+		"height" : "171.79",
+		"weight" : "77.73",
+		"birth_date" : "1948-09-07T12:05:34Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "bankcard",
+				"number" : "3589192738346871",
+				"currency" : "BRL",
+				"balance" : "6090.21"
+			},
+			{
+				"type" : "jcb",
+				"number" : "3552475679727867",
+				"currency" : "PKR",
+				"balance" : "2198.46"
+			},
+			{
+				"type" : "visa",
+				"number" : "3540602698539867",
+				"currency" : "CNY",
+				"balance" : "4563.09"
+			},
+			{
+				"type" : "jcb",
+				"number" : "341151403234411",
+				"currency" : "PEN",
+				"balance" : "4565.74"
+			},
+			{
+				"type" : "mastercard",
+				"number" : "3554033688926513",
+				"currency" : "RUB",
+				"balance" : "4160.76"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fdcfd8e4a2c3b662c2"),
+		"sex" : "Male",
+		"first_name" : "Andrew",
+		"last_name" : "Ross",
+		"job" : "Database Administrator IV",
+		"email" : "aross6ht@webnode.com",
+		"location" : {
+			"city" : "Essen",
+			"address" : {
+				"streetname" : "Kingsford",
+				"streetnumber" : "8687"
+			}
+		},
+		"description" : "aliquam erat volutpat in congue etiam justo etiam pretium iaculis justo in hac habitasse platea dictumst etiam faucibus cursus urna",
+		"height" : "159.34",
+		"weight" : "72.93",
+		"birth_date" : "1989-10-05T16:55:00Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "jcb",
+				"number" : "4175001700207243",
+				"currency" : "CNY",
+				"balance" : "5075.3"
+			},
+			{
+				"type" : "mastercard",
+				"number" : "3572287457211006",
+				"currency" : "IDR",
+				"balance" : "3376.55"
+			},
+			{
+				"type" : "jcb",
+				"number" : "30203496028774",
+				"currency" : "CNY",
+				"balance" : "4192.38"
+			},
+			{
+				"type" : "jcb",
+				"number" : "3552349167321881",
+				"currency" : "USD",
+				"balance" : "5350.7"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fdcfd8e4a2c3b6643f"),
+		"sex" : "Male",
+		"first_name" : "Dennis",
+		"last_name" : "Robertson",
+		"job" : "Occupational Therapist",
+		"email" : "drobertson6sh@bluehost.com",
+		"location" : {
+			"city" : "Dortmund",
+			"address" : {
+				"streetname" : "Calypso",
+				"streetnumber" : "7254"
+			}
+		},
+		"description" : "vivamus tortor duis mattis egestas metus aenean fermentum donec ut mauris eget massa tempor convallis nulla",
+		"height" : "179.83",
+		"weight" : "75.64",
+		"birth_date" : "1971-11-12T00:45:18Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "maestro",
+				"number" : "5509376235757662",
+				"currency" : "SEK",
+				"balance" : "3348.65"
+			},
+			{
+				"type" : "jcb",
+				"number" : "3571947091249321",
+				"currency" : "HNL",
+				"balance" : "5132.1"
+			},
+			{
+				"type" : "jcb",
+				"number" : "56102439396298282",
+				"currency" : "VND",
+				"balance" : "5313.32"
+			}
+		]
+	},
+	{
+		"_id" : ObjectId("628e87fdcfd8e4a2c3b668e6"),
+		"sex" : "Male",
+		"first_name" : "George",
+		"last_name" : "Morrison",
+		"job" : "Internal Auditor",
+		"email" : "gmorrison7pd@yahoo.com",
+		"location" : {
+			"city" : "Halle",
+			"address" : {
+				"streetname" : "Claremont",
+				"streetnumber" : "39"
+			}
+		},
+		"description" : "augue aliquam erat volutpat in congue etiam justo etiam pretium iaculis justo in hac habitasse platea dictumst etiam",
+		"height" : "157.29",
+		"weight" : "67.66",
+		"birth_date" : "2002-09-01T03:20:22Z",
+		"nationality" : "Germany",
+		"credit" : [
+			{
+				"type" : "maestro",
+				"number" : "3542539133040556",
+				"currency" : "IDR",
+				"balance" : "4790.17"
+			}
+		]
+	}
+]

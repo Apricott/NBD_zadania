@@ -1,0 +1,3 @@
+printjson(
+    db.people.findOne()
+    )

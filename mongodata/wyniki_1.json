@@ -1,0 +1,40 @@
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("da37ab38-5540-4415-91aa-88da8f5b90cd") }
+MongoDB server version: 5.0.6
+uncaught exception: TypeError: db.people.findOne(...).toArray is not a function :
+@tasks/zapytanie_1.js:2:5
+failed to load: tasks/zapytanie_1.js
+exiting with code -3
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("30f7f3af-38f9-4f40-9707-f34ce8d07303") }
+MongoDB server version: 5.0.6
+{
+	"_id" : ObjectId("628e87fbcfd8e4a2c3b641e1"),
+	"sex" : "Male",
+	"first_name" : "Wayne",
+	"last_name" : "Fields",
+	"job" : "Speech Pathologist",
+	"email" : "wfields0@diigo.com",
+	"location" : {
+		"city" : "Oyo",
+		"address" : {
+			"streetname" : "Beilfuss",
+			"streetnumber" : "860"
+		}
+	},
+	"description" : "vulputate justo in blandit ultrices enim lorem ipsum dolor sit amet consectetuer adipiscing elit proin interdum mauris",
+	"height" : "152.38",
+	"weight" : "66.81",
+	"birth_date" : "1990-02-21T02:55:03Z",
+	"nationality" : "Nigeria",
+	"credit" : [
+		{
+			"type" : "switch",
+			"number" : "6759888939100098699",
+			"currency" : "COP",
+			"balance" : "5117.06"
+		}
+	]
+}
