@@ -1,0 +1,40 @@
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("1be9ef79-b3d5-4d02-8921-33f3cc38dd95") }
+MongoDB server version: 5.0.6
+uncaught exception: TypeError: db.people.inserOne is not a function :
+@tasks/zapytanie_6.js:1:1
+failed to load: tasks/zapytanie_6.js
+exiting with code -3
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("d8981f0a-38fa-48af-82bd-e578a892452e") }
+MongoDB server version: 5.0.6
+{
+	"_id" : ObjectId("628f79c26fd7cb5c00866096"),
+	"sex" : "Male",
+	"first_name" : "Michal",
+	"last_name" : "Krol",
+	"job" : "Data Engineer",
+	"email" : "firstlast@email.com",
+	"location" : {
+		"city" : "Warsaw",
+		"address" : {
+			"streetname" : "Targowa",
+			"streetnumber" : "72"
+		}
+	},
+	"description" : "vulputate justo in blandit ultrices enim lorem ipsum dolor sit amet consectetuer adipiscing elit proin interdum mauris",
+	"height" : "185",
+	"weight" : "85",
+	"birth_date" : "1999-01-05T00:00:00Z",
+	"nationality" : "Poland",
+	"credit" : [
+		{
+			"type" : "switch",
+			"number" : "12345678901234567890",
+			"currency" : "PLN",
+			"balance" : "42.00"
+		}
+	]
+}
