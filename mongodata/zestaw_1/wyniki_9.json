@@ -358,3 +358,363 @@ MongoDB server version: 5.0.6
 		"hobby" : "pingpong"
 	}
 ]
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("36f98ec3-cc25-4066-a7d8-0cf341663c0d") }
+MongoDB server version: 5.0.6
+[
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef1569d"),
+		"first_name" : "Antonio",
+		"last_name" : "Howell",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15769"),
+		"first_name" : "Antonio",
+		"last_name" : "Fowler",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15873"),
+		"first_name" : "Antonio",
+		"last_name" : "Gonzalez",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef158a2"),
+		"first_name" : "Antonio",
+		"last_name" : "Fuller",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15929"),
+		"first_name" : "Antonio",
+		"last_name" : "West",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15934"),
+		"first_name" : "Antonio",
+		"last_name" : "Hart",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15957"),
+		"first_name" : "Antonio",
+		"last_name" : "Alexander",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef159a3"),
+		"first_name" : "Antonio",
+		"last_name" : "Baker",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef159c9"),
+		"first_name" : "Antonio",
+		"last_name" : "Bishop",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15add"),
+		"first_name" : "Antonio",
+		"last_name" : "Hansen",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15b0b"),
+		"first_name" : "Antonio",
+		"last_name" : "Morris",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15b57"),
+		"first_name" : "Antonio",
+		"last_name" : "Rivera",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15b5d"),
+		"first_name" : "Antonio",
+		"last_name" : "Hanson",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15c7a"),
+		"first_name" : "Antonio",
+		"last_name" : "Bennett",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15cdb"),
+		"first_name" : "Antonio",
+		"last_name" : "Oliver",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15db5"),
+		"first_name" : "Antonio",
+		"last_name" : "Garcia",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15e0b"),
+		"first_name" : "Antonio",
+		"last_name" : "Morris",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15ef5"),
+		"first_name" : "Antonio",
+		"last_name" : "Mason",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15f74"),
+		"first_name" : "Antonio",
+		"last_name" : "Smith",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15f96"),
+		"first_name" : "Antonio",
+		"last_name" : "Vasquez",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef15fee"),
+		"first_name" : "Antonio",
+		"last_name" : "Patterson",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef161de"),
+		"first_name" : "Antonio",
+		"last_name" : "Hunt",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef162a7"),
+		"first_name" : "Antonio",
+		"last_name" : "Patterson",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953cdf9c90b0fffef164a8"),
+		"first_name" : "Antonio",
+		"last_name" : "Ray",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef165d2"),
+		"first_name" : "Antonio",
+		"last_name" : "Lynch",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef1672c"),
+		"first_name" : "Antonio",
+		"last_name" : "Mills",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16763"),
+		"first_name" : "Antonio",
+		"last_name" : "Martin",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16a17"),
+		"first_name" : "Antonio",
+		"last_name" : "Meyer",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16b4b"),
+		"first_name" : "Antonio",
+		"last_name" : "Watson",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16b53"),
+		"first_name" : "Antonio",
+		"last_name" : "Reed",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16b75"),
+		"first_name" : "Antonio",
+		"last_name" : "Sims",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16b79"),
+		"first_name" : "Antonio",
+		"last_name" : "Mccoy",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16bbc"),
+		"first_name" : "Antonio",
+		"last_name" : "Brooks",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16c0b"),
+		"first_name" : "Antonio",
+		"last_name" : "Taylor",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16c6c"),
+		"first_name" : "Antonio",
+		"last_name" : "Gardner",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16e2e"),
+		"first_name" : "Antonio",
+		"last_name" : "Owens",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16e42"),
+		"first_name" : "Antonio",
+		"last_name" : "Franklin",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16ef9"),
+		"first_name" : "Antonio",
+		"last_name" : "Burton",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef16f15"),
+		"first_name" : "Antonio",
+		"last_name" : "Johnston",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17039"),
+		"first_name" : "Antonio",
+		"last_name" : "Ford",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17056"),
+		"first_name" : "Antonio",
+		"last_name" : "Richardson",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef1706a"),
+		"first_name" : "Antonio",
+		"last_name" : "Gutierrez",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17193"),
+		"first_name" : "Antonio",
+		"last_name" : "Bowman",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef173c1"),
+		"first_name" : "Antonio",
+		"last_name" : "Scott",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17512"),
+		"first_name" : "Antonio",
+		"last_name" : "Harvey",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef1754b"),
+		"first_name" : "Antonio",
+		"last_name" : "Austin",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17637"),
+		"first_name" : "Antonio",
+		"last_name" : "Bryant",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef176d9"),
+		"first_name" : "Antonio",
+		"last_name" : "Ward",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17773"),
+		"first_name" : "Antonio",
+		"last_name" : "Schmidt",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17787"),
+		"first_name" : "Antonio",
+		"last_name" : "Allen",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef1778c"),
+		"first_name" : "Antonio",
+		"last_name" : "George",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef177ff"),
+		"first_name" : "Antonio",
+		"last_name" : "Edwards",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17898"),
+		"first_name" : "Antonio",
+		"last_name" : "Robertson",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17921"),
+		"first_name" : "Antonio",
+		"last_name" : "Vasquez",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17959"),
+		"first_name" : "Antonio",
+		"last_name" : "Johnson",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17b41"),
+		"first_name" : "Antonio",
+		"last_name" : "Boyd",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17b6b"),
+		"first_name" : "Antonio",
+		"last_name" : "Moreno",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17c4e"),
+		"first_name" : "Antonio",
+		"last_name" : "Butler",
+		"hobby" : "pingpong"
+	},
+	{
+		"_id" : ObjectId("62953ce09c90b0fffef17cba"),
+		"first_name" : "Antonio",
+		"last_name" : "Peterson",
+		"hobby" : "pingpong"
+	}
+]
