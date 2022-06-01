@@ -3,3 +3,8 @@ connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceN
 Implicit session: session { "id" : UUID("0a59c124-565a-475b-a951-59cc38441fd4") }
 MongoDB server version: 5.0.6
 [ ]
+MongoDB shell version v5.0.6
+connecting to: mongodb://127.0.0.1:27017/nbd?compressors=disabled&gssapiServiceName=mongodb
+Implicit session: session { "id" : UUID("bd145015-52bd-4256-9236-587f99f0623e") }
+MongoDB server version: 5.0.6
+[ ]
