@@ -1,0 +1,225 @@
+﻿[
+  {
+    "m": {
+"identity": 155,
+"labels": [
+        "Movie"
+      ],
+"properties": {
+"title": "Captain America: The First Avenger",
+"released": 2011
+      }
+    },
+    "r": {
+"identity": 265,
+"start": 167,
+"end": 155,
+"type": "ACTED_IN",
+"properties": {
+"roles": [
+          "Johann Schmidt"
+        ]
+      }
+    },
+    "p": {
+"identity": 167,
+"labels": [
+        "Person"
+      ],
+"properties": {
+"born": 1960,
+"name": "Hugo Weaving"
+      }
+    }
+  },
+  {
+    "m": {
+"identity": 155,
+"labels": [
+        "Movie"
+      ],
+"properties": {
+"title": "Captain America: The First Avenger",
+"released": 2011
+      }
+    },
+    "r": {
+"identity": 254,
+"start": 179,
+"end": 155,
+"type": "DIRECTED",
+"properties": {
+
+      }
+    },
+    "p": {
+"identity": 179,
+"labels": [
+        "Person"
+      ],
+"properties": {
+"born": 1950,
+"name": "Joe Johnston"
+      }
+    }
+  },
+  {
+    "m": {
+"identity": 155,
+"labels": [
+        "Movie"
+      ],
+"properties": {
+"title": "Captain America: The First Avenger",
+"released": 2011
+      }
+    },
+    "r": {
+"identity": 264,
+"start": 184,
+"end": 155,
+"type": "ACTED_IN",
+"properties": {
+"roles": [
+          "Nick Fury"
+        ]
+      }
+    },
+    "p": {
+"identity": 184,
+"labels": [
+        "Person"
+      ],
+"properties": {
+"born": 1948,
+"name": "Samuel L. Jackson"
+      }
+    }
+  },
+  {
+    "m": {
+"identity": 155,
+"labels": [
+        "Movie"
+      ],
+"properties": {
+"title": "Captain America: The First Avenger",
+"released": 2011
+      }
+    },
+    "r": {
+"identity": 262,
+"start": 182,
+"end": 155,
+"type": "WROTE",
+"properties": {
+
+      }
+    },
+    "p": {
+"identity": 182,
+"labels": [
+        "Person"
+      ],
+"properties": {
+"born": 1913,
+"name": "Joe Simon"
+      }
+    }
+  },
+  {
+    "m": {
+"identity": 155,
+"labels": [
+        "Movie"
+      ],
+"properties": {
+"title": "Captain America: The First Avenger",
+"released": 2011
+      }
+    },
+    "r": {
+"identity": 261,
+"start": 181,
+"end": 155,
+"type": "WROTE",
+"properties": {
+
+      }
+    },
+    "p": {
+"identity": 181,
+"labels": [
+        "Person"
+      ],
+"properties": {
+"born": 1970,
+"name": "Stephen McFeely"
+      }
+    }
+  },
+  {
+    "m": {
+"identity": 155,
+"labels": [
+        "Movie"
+      ],
+"properties": {
+"title": "Captain America: The First Avenger",
+"released": 2011
+      }
+    },
+    "r": {
+"identity": 260,
+"start": 180,
+"end": 155,
+"type": "WROTE",
+"properties": {
+
+      }
+    },
+    "p": {
+"identity": 180,
+"labels": [
+        "Person"
+      ],
+"properties": {
+"born": 1970,
+"name": "Christopher Markus"
+      }
+    }
+  },
+  {
+    "m": {
+"identity": 155,
+"labels": [
+        "Movie"
+      ],
+"properties": {
+"title": "Captain America: The First Avenger",
+"released": 2011
+      }
+    },
+    "r": {
+"identity": 263,
+"start": 183,
+"end": 155,
+"type": "ACTED_IN",
+"properties": {
+"roles": [
+          "Captain America"
+        ]
+      }
+    },
+    "p": {
+"identity": 183,
+"labels": [
+        "Person"
+      ],
+"properties": {
+"born": 1981,
+"name": "Chris Evans"
+      }
+    }
+  }
+]
