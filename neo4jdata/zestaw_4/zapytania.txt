@@ -1,0 +1,68 @@
+1. match p = allShortestPaths(({name:"Darjeeling"})-[r*]->({name:"Sandakphu"}))
+return p
+
+2. match p = allShortestPaths(({name:"Darjeeling"})-[r*]->({name:"Sandakphu"}))
+WITH p
+WHERE ALL(x in RELATIONSHIPS(p) WHERE x.winter="true")
+return p
+
+3. match p = (({name:"Darjeeling"})-[r*]->({name:"Sandakphu"}))
+WITH p, REDUCE(x=0, a in relationships(p) | x+a.distance) as distance
+ORDER BY distance
+return p, distance
+
+4. match p = (({name:"Darjeeling"})-[r*]->(d))
+WITH p, d
+WHERE ALL(x in relationships(p) WHERE x.summer="true" AND (x:road OR x:twowheeler))
+return d
+
+5. match (a:Airport)<-[:ORIGIN]-(f:Flight)
+with a, count(f) as counter
+ORDER BY counter DESC
+return a, counter
+
+6. match (a:Airport )<-[:ORIGIN]-(f:Flight)-[:DESTINATION]->(b:Airport),
+(f)-[:ASSIGN]-(t:Ticket)
+create (a)-[r:FLY_TO {price:t.price,Class:t.class} ]->(b)
+
+match p = ((:Airport {name:"LAX"})-[r:FLY_TO*..4]->(d:Airport))
+with d,
+REDUCE (x=0, r in relationships(p) | x + r.price) as price
+WHERE price < 3000
+return distinct d
+
+7. match p = ((:Airport {name:"LAX"})-[r:FLY_TO*..4]->(:Airport {name:"DAY"}))
+with p,
+REDUCE (x=0, r in relationships(p) | x + r.price) as price
+ORDER BY price
+return p
+
+!!! nie ma takich połączeń, z LAX nie da się dostać do DAY z co najwyżej 3 przesiadkami.
+!!! sprawdzenie więcej niż 3 przesiadek jest zbyt obciążające dla mojego komputera
+
+8. match p = ((:Airport {name:"LAX"})-[r:FLY_TO*..4]->(:Airport {name:"DAY"}))
+with p,
+REDUCE (x=0, r in relationships(p) | x + r.price) as price
+ORDER BY price
+return p LIMIT 1
+
+!!! nie ma takich połączeń, z LAX nie da się dostać do DAY z co najwyżej 3 przesiadkami.
+!!! sprawdzenie więcej niż 3 przesiadek jest zbyt obciążające dla mojego komputera
+
+9. CALL {
+    match p = (a:Airport)<-[:ORIGIN]-(f:Flight)-[:DESTINATION]->(:Airport)
+    return f.airline as airline, a.name as city
+    union
+    match p = (:Airport)<-[:ORIGIN]-(f:Flight)-[:DESTINATION]->(b:Airport)
+    return f.airline as airline, b.name as city
+}
+with airline, count(city) as cities
+order by cities
+return airline, cities
+
+10. match p = (a:Airport)-[:FLY_TO*2]->(b:Airport)
+WHERE a <> b
+with p,
+REDUCE (x=0, r in relationships(p) | x + r.price) as price
+ORDER BY price
+return p, price limit 1
