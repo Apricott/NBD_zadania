@@ -1,0 +1,22 @@
+Put doc in riak
+Status code: 204
+
+Fetch doc from riak
+Status code: 200
+{"title": "The Lion King", "directors": ["Roger Allers", "Rob Minkoff"], "rating": 85}
+
+Modify doc in riak (rating: 100)
+Status code: 204
+
+Fetch doc from riak
+Status code: 200
+{"title": "The Lion King", "directors": ["Roger Allers", "Rob Minkoff"], "rating": 100}
+
+Delete doc from riak
+Status code: 204
+
+Try to fetch deleted doc from riak
+Status code: 404
+not found
+
+
