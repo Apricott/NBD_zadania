@@ -1,0 +1,35 @@
+localhost odrzuca połączenie, dlatego wysyłam requesty bezpośrednio do aktywnego noda w klastrze riaka (172.17.0.2)
+
+1.
+curl -XPUT -H "Content-Type: application/json" -d '{"firstname": "John", "lastname": "Doe", "born": "19900404", "age": 32}' -i http://172.17.0.2:8098/buckets/s25874/keys/johndoe
+curl -XPUT -H "Content-Type: application/json" -d '{"firstname": "Jane", "lastname": "Doe", "born": "19860103", "age": 36}' -i http://172.17.0.2:8098/buckets/s25874/keys/janedoe
+curl -XPUT -H "Content-Type: application/json" -d '{"firstname": "Richard", "lastname": "Hammond", "born": "19691219", "age": 52}' -i http://172.17.0.2:8098/buckets/s25874/keys/richardhammond
+curl -XPUT -H "Content-Type: application/json" -d '{"firstname": "James", "lastname": "May", "born": "19630116", "age": 59}' -i http://172.17.0.2:8098/buckets/s25874/keys/jamesmay
+curl -XPUT -H "Content-Type: application/json" -d '{"firstname": "Jeremy", "lastname": "Clarkson", "born": "19600411", "age": 62}' -i http://172.17.0.2:8098/buckets/s25874/keys/jeremyclarkson
+
+2. 
+curl -XGET -i http://172.17.0.2:8098/buckets/s25874/keys/jeremyclarkson
+
+3.
+curl -XPUT -H "Content-Type: application/json" -d '{"firstname": "Richard", "lastname": "Hammond", "born": "19691219", "age": 52, "crashes": 2}' -i http://172.17.0.2:8098/buckets/s25874/keys/richardhammond
+
+4.
+curl -XPUT -H "Content-Type: application/json" -d '{"firstname": "John", "lastname": "Doe", "age": 32}' -i http://172.17.0.2:8098/buckets/s25874/keys/johndoe
+
+5.
+curl -XPUT -H "Content-Type: application/json" -d '{"firstname": "Jane", "lastname": "Doe", "born": "20000101", "age": 36}' -i http://172.17.0.2:8098/buckets/s25874/keys/janedoe
+
+6.
+curl -XDELETE -i http://172.17.0.2:8098/buckets/s25874/keys/johndoe
+
+7.
+curl -i http://172.17.0.2:8098/buckets/s25874/keys/johndoe
+
+8.
+curl -XPOST -H "Content-Type: application/json" -d '{"key": "unknown"}' -i http://172.17.0.2:8098/buckets/s25874/keys
+
+9.
+curl -i http://172.17.0.2:8098/buckets/s25874/keys/4S7sbnOMnJn9efHSRsQSUIqXPeL
+
+10.
+curl -XDELETE -i http://172.17.0.2:8098/buckets/s25874/keys/4S7sbnOMnJn9efHSRsQSUIqXPeL
