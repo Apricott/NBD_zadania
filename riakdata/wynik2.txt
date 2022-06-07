@@ -1,0 +1,12 @@
+HTTP/1.1 200 OK
+X-Riak-Vclock: a85hYGBgzGDKBVI8+xkWvr8tJvgMIpTInMfK0LZQ6A5fFgA=
+Vary: Accept-Encoding
+Server: MochiWeb/1.1 WebMachine/1.10.9 (cafe not found)
+Link: </buckets/s25874>; rel="up"
+Last-Modified: Mon, 06 Jun 2022 16:04:22 GMT
+ETag: "7f2z93mNCnI9jfFYhaf1kf"
+Date: Mon, 06 Jun 2022 16:05:07 GMT
+Content-Type: application/json
+Content-Length: 78
+
+{"firstname": "Jeremy", "lastname": "Clarkson", "born": "19600411", "age": 62}
